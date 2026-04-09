@@ -1,0 +1,9 @@
+name = "mimonik"
+compatibility_date = "2024-09-23"
+
+[assets]
+directory = "./html"
+
+[[routes]]
+pattern = "mimonik.knyt.tl"
+custom_domain = true
