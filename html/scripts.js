@@ -10,6 +10,9 @@ function loadImage(src) {
 }
 
 async function loadSlides() {
+  const container = document.getElementById("blabla");
+  if (!container) return;
+
   let html = "";
   let strana = 1;
 
@@ -24,7 +27,7 @@ async function loadSlides() {
 
   if (strana === 1) return;
 
-  document.getElementById("blabla").innerHTML = html;
+  container.innerHTML = html;
   showSlides(slideIndex);
 }
 
@@ -54,3 +57,14 @@ function showSlides(n) {
 }
 
 loadSlides();
+
+const SECRET = "mniok";
+let buffer = "";
+
+document.addEventListener("keydown", (e) => {
+  if (e.key.length !== 1) return;
+  buffer = (buffer + e.key.toLowerCase()).slice(-SECRET.length);
+  if (buffer === SECRET) {
+    window.location.href = "secret.html";
+  }
+});
