@@ -13,10 +13,10 @@ async function loadSlides() {
   let html = "";
   let strana = 1;
 
-  while (await loadImage(`./M${strana}.jpg`)) {
+  while (await loadImage(`./images/strany/M${strana}.jpg`)) {
     html += `
 <div id="slide${strana}" class="mySlides fade">
-  <img src="./M${strana}.jpg" alt="Strana ${strana}">
+  <img src="./images/strany/M${strana}.jpg" alt="Strana ${strana}">
 </div>
 `;
     strana++;

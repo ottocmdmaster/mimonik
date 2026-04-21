@@ -8,9 +8,10 @@ cd "$(dirname "$0")/html"
 newest=""
 newest_val=0
 
-for pdf in *.pdf; do
+for pdf in images/pdf/*.pdf; do
+  base=$(basename "$pdf")
   [ -f "$pdf" ] || continue
-  name="${pdf%.pdf}"
+  name="${base%.pdf}"
 
   if [[ "$name" =~ ^([0-9]{2})\+([0-9]{2})([0-9]{2})$ ]]; then
     # Dvojčíslo: 03+0425 → mm1=03, mm2=04, yy=25, řadí se podle pozdějšího měsíce
@@ -40,18 +41,19 @@ echo "Nejnovější PDF: ${newest}.pdf"
 
 # Smaž staré JPG stránky
 echo "Mažu staré JPG..."
-rm -f M[0-9]*.jpg
+mkdir -p images/strany
+rm -f images/strany/M[0-9]*.jpg
 
 # Převeď PDF na JPG stránky
 echo "Konvertuji ${newest}.pdf na JPG..."
-pdftoppm -jpeg -r 200 "${newest}.pdf" M
+pdftoppm -jpeg -r 200 "images/pdf/${newest}.pdf" images/strany/M
 
 # Přejmenuj M-01.jpg → M1.jpg, M-02.jpg → M2.jpg (bez pomlčky a leading zeros)
 count=0
-for f in M-*.jpg; do
+for f in images/strany/M-*.jpg; do
   [ -f "$f" ] || continue
   count=$((count + 1))
-  mv "$f" "M${count}.jpg"
+  mv "$f" "images/strany/M${count}.jpg"
 done
 
 echo "Vytvořeno $count stránek."
