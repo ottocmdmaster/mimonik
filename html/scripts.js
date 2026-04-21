@@ -61,10 +61,15 @@ loadSlides();
 const SECRET = "mniok";
 let buffer = "";
 
+console.log("[secret] script loaded, listening for:", SECRET);
+
 document.addEventListener("keydown", (e) => {
+  console.log("[secret] keydown:", e.key, "| buffer before:", buffer);
   if (e.key.length !== 1) return;
   buffer = (buffer + e.key.toLowerCase()).slice(-SECRET.length);
+  console.log("[secret] buffer after:", buffer);
   if (buffer === SECRET) {
+    console.log("[secret] MATCH! redirecting...");
     window.location.href = "secret.html";
   }
 });
