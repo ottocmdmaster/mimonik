@@ -46,6 +46,7 @@ if (!mimonikToken) {
     </nav>
 </div>
 <h1 class="stred" id="pozdrav"></h1>
+<p class="stred" id="opravneni"></p>
 <h1 class="stred">Nahrání čísla</h1>
 <form class="stred" action="https://formsubmit.co/mimonik4b@gmail.com" method="POST" enctype="multipart/form-data">
     <input type="hidden" name="_subject" value="Nové PDF pro Mimoník">
@@ -63,6 +64,9 @@ if (!mimonikToken) {
 <script>
 if (mimonikToken) {
     document.getElementById("pozdrav").textContent = `Ahoj ${mimonikToken.uzivatel.replace(/_/g, " ")}!`;
+    document.getElementById("opravneni").textContent = mimonikToken.opravneni
+        ? `Oprávnění: ${mimonikToken.opravneni}`
+        : "Oprávnění: (neuvedeno)";
     document.getElementById("form-uzivatel").value = mimonikToken.uzivatel;
     document.getElementById("form-token").value = mimonikToken.token;
 }
