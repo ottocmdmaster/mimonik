@@ -55,7 +55,8 @@ if (!mimonikToken) {
     D – programátor
 </div>
 <h1 class="stred">Nahrání čísla</h1>
-<form class="stred" action="https://formsubmit.co/mimonik4b@gmail.com" method="POST" enctype="multipart/form-data">
+<p class="stred" id="zakaz" style="display:none; color:red;">Nemáš oprávnění k nahrávání.</p>
+<form id="upload-form" class="stred" action="https://formsubmit.co/mimonik4b@gmail.com" method="POST" enctype="multipart/form-data">
     <input type="hidden" name="_subject" value="Nové PDF pro Mimoník">
     <input type="hidden" name="_captcha" value="false">
     <input type="hidden" name="_next" value="https://mimonik.pages.dev/uzivatel.html?ok=1">
@@ -76,6 +77,10 @@ if (mimonikToken) {
         : "Oprávnění: (neuvedeno)";
     document.getElementById("form-uzivatel").value = mimonikToken.uzivatel;
     document.getElementById("form-token").value = mimonikToken.token;
+    if (mimonikToken.opravneni === "B") {
+        document.getElementById("upload-form").style.display = "none";
+        document.getElementById("zakaz").style.display = "";
+    }
 }
 document.getElementById("odhlasit").addEventListener("click", () => {
     sessionStorage.removeItem("mimonik-token");
