@@ -1,0 +1,61 @@
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>NAHRÁNÍ PŘÍSPĚVKŮ</title>
+    <link href="./mimonik.css" rel="stylesheet">
+</head>
+<body>
+<a href="index.html"><div style="width: 100%; background-color: blue; height: 50px; line-height: 50px; color: black; border-bottom: 2px solid black;">
+    <h1 class="stred" style="color: yellow;">MIMONÍK</h1>
+</div></a>
+<div>
+    <input type="checkbox" id="menu-toggle" class="menu-toggle">
+    <label for="menu-toggle" class="menu-icon">
+        <div></div>
+        <div></div>
+        <div></div>
+    </label>
+    <nav class="nav-menu">
+        <a href="index.html">HLAVNÍ STRANA</a>
+        <a href="./images/pdf/OslavaMimoniku.pdf" target="blank">PRVNÍ VÝROČÍ</a>
+        <a href="stahovani.html">SOUBORY KE STAŽENÍ</a>
+        <a href="https://www.nepomucka.cz/">WEB ŠKOLY</a>
+        <a href="kontakt.html">KONTAKT</a>
+    </nav>
+</div>
+<h1 class="stred">NAHRÁNÍ PŘÍSPĚVKŮ</h1>
+<form id="nahrani-form" class="stred" action="https://formsubmit.co/mimonik4b@gmail.com" method="POST" enctype="multipart/form-data">
+    <input type="hidden" name="_subject" value="Nový příspěvek pro Mimoník">
+    <input type="hidden" name="_captcha" value="false">
+    <input type="hidden" name="_next" value="https://mimonik.pages.dev/nahrani.html?ok=1">
+    <label>Heslo:<br>
+        <input type="password" id="heslo" name="heslo" required>
+    </label>
+    <br><br>
+    <input type="file" name="attachment" accept="image/jpeg" required>
+    <br><br>
+    <button type="submit">Nahrát JPG</button>
+</form>
+<script>
+document.getElementById("nahrani-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const form = e.target;
+    const zadane = document.getElementById("heslo").value.trim();
+    try {
+        const res = await fetch("./kody.txt", { cache: "no-store" });
+        const text = await res.text();
+        const hesla = text.split(/\r?\n/).map(h => h.trim()).filter(Boolean);
+        if (!hesla.includes(zadane)) {
+            alert("Nesprávné heslo.");
+            return;
+        }
+        form.submit();
+    } catch (err) {
+        alert("Nepodařilo se ověřit heslo.");
+    }
+});
+</script>
+<script src="./scripts.js"></script>
+</body>
+</html>
+

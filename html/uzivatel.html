@@ -1,0 +1,76 @@
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Nahrání čísel</title>
+    <link href="./mimonik.css" rel="stylesheet">
+</head>
+<body>
+<script>
+const TOKEN_PLATNOST_MS = 60 * 60 * 1000;
+function nactiToken() {
+    try {
+        const raw = sessionStorage.getItem("mimonik-token");
+        if (!raw) return null;
+        const data = JSON.parse(raw);
+        if (!data.token || !data.uzivatel || !data.vytvoren) return null;
+        if (Date.now() - data.vytvoren > TOKEN_PLATNOST_MS) return null;
+        return data;
+    } catch (e) {
+        return null;
+    }
+}
+const mimonikToken = nactiToken();
+if (!mimonikToken) {
+    sessionStorage.removeItem("mimonik-token");
+    window.location.replace("secret.html");
+}
+</script>
+<a href="index.html"><div style="width: 100%; background-color: blue; height: 50px; line-height: 50px; color: black; border-bottom: 2px solid black;">
+    <h1 class="stred" style="color: yellow;">MIMONÍK</h1>
+</div></a>
+<div>
+    <input type="checkbox" id="menu-toggle" class="menu-toggle">
+    <label for="menu-toggle" class="menu-icon">
+        <div></div>
+        <div></div>
+        <div></div>
+    </label>
+    <nav class="nav-menu">
+        <a href="index.html">HLAVNÍ STRANA</a>
+        <a href="./images/pdf/OslavaMimoniku.pdf" target="blank">PRVNÍ VÝROČÍ</a>
+        <a href="stahovani.html">SOUBORY KE STAŽENÍ</a>
+        <a href="historie.html">HISTORIE</a>
+        <a href="kontakt.html">KONTAKTY</a>
+        <a href="nahrani.html">NAHRÁNÍ PŘÍSPĚVKŮ</a>
+        <a href="https://www.nepomucka.cz/">WEB ŠKOLY</a>
+    </nav>
+</div>
+<h1 class="stred" id="pozdrav"></h1>
+<h1 class="stred">Nahrání čísla</h1>
+<form class="stred" action="https://formsubmit.co/mimonik4b@gmail.com" method="POST" enctype="multipart/form-data">
+    <input type="hidden" name="_subject" value="Nové PDF pro Mimoník">
+    <input type="hidden" name="_captcha" value="false">
+    <input type="hidden" name="_next" value="https://mimonik.pages.dev/uzivatel.html?ok=1">
+    <input type="hidden" name="uzivatel" id="form-uzivatel">
+    <input type="hidden" name="token" id="form-token">
+    <input type="file" name="attachment" accept="application/pdf" required>
+    <br><br>
+    <button type="submit">Nahrát PDF</button>
+</form>
+<p class="stred">
+    <button type="button" id="odhlasit">Odhlásit</button>
+</p>
+<script>
+if (mimonikToken) {
+    document.getElementById("pozdrav").textContent = `Ahoj ${mimonikToken.uzivatel.replace(/_/g, " ")}!`;
+    document.getElementById("form-uzivatel").value = mimonikToken.uzivatel;
+    document.getElementById("form-token").value = mimonikToken.token;
+}
+document.getElementById("odhlasit").addEventListener("click", () => {
+    sessionStorage.removeItem("mimonik-token");
+    window.location.href = "secret.html";
+});
+</script>
+<script src="./scripts.js"></script>
+</body>
+</html>
