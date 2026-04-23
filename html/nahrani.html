@@ -36,25 +36,6 @@
     <br><br>
     <button type="submit">Nahrát JPG</button>
 </form>
-<script>
-document.getElementById("nahrani-form").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const form = e.target;
-    const zadane = document.getElementById("heslo").value.trim();
-    try {
-        const res = await fetch("./kody.txt", { cache: "no-store" });
-        const text = await res.text();
-        const hesla = text.split(/\r?\n/).map(h => h.trim()).filter(Boolean);
-        if (!hesla.includes(zadane)) {
-            alert("Nesprávné heslo.");
-            return;
-        }
-        form.submit();
-    } catch (err) {
-        alert("Nepodařilo se ověřit heslo.");
-    }
-});
-</script>
 <script src="./scripts.js"></script>
 </body>
 </html>
