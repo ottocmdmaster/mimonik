@@ -66,6 +66,12 @@ if (!mimonikToken) {
     <br><br>
     <button type="submit">Nahrát PDF</button>
 </form>
+<div class="stred" id="github-info" style="display:none;">
+    <h2>GitHub repozitář</h2>
+    <p>HTTPS: <code>https://github.com/ottocmdmaster/mimonik.git</code></p>
+    <p>SSH: <code>git@github.com:ottocmdmaster/mimonik.git</code></p>
+    <p>GitHub CLI: <code>gh repo clone ottocmdmaster/mimonik</code></p>
+</div>
 <p class="stred">
     <button type="button" id="odhlasit">Odhlásit</button>
 </p>
@@ -80,6 +86,9 @@ if (mimonikToken) {
     if (mimonikToken.opravneni === "B") {
         document.getElementById("upload-form").style.display = "none";
         document.getElementById("zakaz").style.display = "";
+    }
+    if (mimonikToken.opravneni === "D") {
+        document.getElementById("github-info").style.display = "";
     }
 }
 document.getElementById("odhlasit").addEventListener("click", () => {
