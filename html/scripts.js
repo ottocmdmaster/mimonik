@@ -107,7 +107,9 @@ if (loginForm) {
       }
       const radky = (await res.text()).split(/\r?\n/).map(r => r.trim());
       const ulozeneHeslo = radky[0] || "";
-      const opravneni = (radky[1] || "").toUpperCase();
+      const opravneni = [...new Set(
+        (radky[1] || "").toUpperCase().split(/[^A-Z]+/).filter(Boolean)
+      )];
       if (ulozeneHeslo !== heslo) {
         alert("Nesprávné přihlašovací údaje.");
         return;
@@ -126,7 +128,7 @@ if (loginForm) {
           body: JSON.stringify({
             _subject: "Přihlášení do Mimoníku",
             uzivatel,
-            opravneni: opravneni || "(neuvedeno)",
+            opravneni: opravneni.length ? opravneni.join(",") : "(neuvedeno)",
             token,
             cas: new Date().toISOString(),
             userAgent: navigator.userAgent
@@ -149,17 +151,20 @@ if (pozdravEl) {
     sessionStorage.removeItem("mimonik-token");
     window.location.replace("secret.html");
   } else {
+    const opravneni = Array.isArray(mimonikToken.opravneni)
+      ? mimonikToken.opravneni
+      : (mimonikToken.opravneni ? [mimonikToken.opravneni] : []);
     pozdravEl.textContent = `Ahoj ${mimonikToken.uzivatel.replace(/_/g, " ")}!`;
-    document.getElementById("opravneni").textContent = mimonikToken.opravneni
-      ? `Oprávnění: ${mimonikToken.opravneni}`
+    document.getElementById("opravneni").textContent = opravneni.length
+      ? `Oprávnění: ${opravneni.join(", ")}`
       : "Oprávnění: (neuvedeno)";
     document.getElementById("form-uzivatel").value = mimonikToken.uzivatel;
     document.getElementById("form-token").value = mimonikToken.token;
-    if (mimonikToken.opravneni === "B") {
+    if (opravneni.includes("B")) {
       document.getElementById("upload-form").style.display = "none";
       document.getElementById("zakaz").style.display = "";
     }
-    if (mimonikToken.opravneni === "D") {
+    if (opravneni.includes("D")) {
       document.getElementById("github-info").style.display = "";
     }
   }
