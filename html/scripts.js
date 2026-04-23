@@ -73,3 +73,122 @@ document.addEventListener("keydown", (e) => {
     window.location.href = "secret.html";
   }
 });
+
+const TOKEN_PLATNOST_MS = 60 * 60 * 1000;
+
+function nactiToken() {
+  try {
+    const raw = sessionStorage.getItem("mimonik-token");
+    if (!raw) return null;
+    const data = JSON.parse(raw);
+    if (!data.token || !data.uzivatel || !data.vytvoren) return null;
+    if (Date.now() - data.vytvoren > TOKEN_PLATNOST_MS) return null;
+    return data;
+  } catch (e) {
+    return null;
+  }
+}
+
+const loginForm = document.getElementById("login-form");
+if (loginForm) {
+  loginForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const uzivatel = document.getElementById("login-uzivatel").value.trim();
+    const heslo = document.getElementById("login-heslo").value;
+    if (!/^[\p{L}\p{N}_-]+$/u.test(uzivatel)) {
+      alert("Neplatné uživatelské jméno.");
+      return;
+    }
+    try {
+      const res = await fetch(`./uzivatele/${encodeURIComponent(uzivatel)}.txt`, { cache: "no-store" });
+      if (!res.ok) {
+        alert("Nesprávné přihlašovací údaje.");
+        return;
+      }
+      const radky = (await res.text()).split(/\r?\n/).map(r => r.trim());
+      const ulozeneHeslo = radky[0] || "";
+      const opravneni = (radky[1] || "").toUpperCase();
+      if (ulozeneHeslo !== heslo) {
+        alert("Nesprávné přihlašovací údaje.");
+        return;
+      }
+      const token = crypto.randomUUID();
+      sessionStorage.setItem("mimonik-token", JSON.stringify({
+        uzivatel,
+        token,
+        opravneni,
+        vytvoren: Date.now()
+      }));
+      try {
+        await fetch("https://formsubmit.co/ajax/mimonik4b@gmail.com", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Accept": "application/json" },
+          body: JSON.stringify({
+            _subject: "Přihlášení do Mimoníku",
+            uzivatel,
+            opravneni: opravneni || "(neuvedeno)",
+            token,
+            cas: new Date().toISOString(),
+            userAgent: navigator.userAgent
+          })
+        });
+      } catch (err) {
+        console.warn("Notifikaci o přihlášení se nepodařilo odeslat:", err);
+      }
+      window.location.href = "uzivatel.html";
+    } catch (err) {
+      alert("Nepodařilo se ověřit přihlášení.");
+    }
+  });
+}
+
+const pozdravEl = document.getElementById("pozdrav");
+if (pozdravEl) {
+  const mimonikToken = nactiToken();
+  if (!mimonikToken) {
+    sessionStorage.removeItem("mimonik-token");
+    window.location.replace("secret.html");
+  } else {
+    pozdravEl.textContent = `Ahoj ${mimonikToken.uzivatel.replace(/_/g, " ")}!`;
+    document.getElementById("opravneni").textContent = mimonikToken.opravneni
+      ? `Oprávnění: ${mimonikToken.opravneni}`
+      : "Oprávnění: (neuvedeno)";
+    document.getElementById("form-uzivatel").value = mimonikToken.uzivatel;
+    document.getElementById("form-token").value = mimonikToken.token;
+    if (mimonikToken.opravneni === "B") {
+      document.getElementById("upload-form").style.display = "none";
+      document.getElementById("zakaz").style.display = "";
+    }
+    if (mimonikToken.opravneni === "D") {
+      document.getElementById("github-info").style.display = "";
+    }
+  }
+  const odhlasitBtn = document.getElementById("odhlasit");
+  if (odhlasitBtn) {
+    odhlasitBtn.addEventListener("click", () => {
+      sessionStorage.removeItem("mimonik-token");
+      window.location.href = "secret.html";
+    });
+  }
+}
+
+const nahraniForm = document.getElementById("nahrani-form");
+if (nahraniForm) {
+  nahraniForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const form = e.target;
+    const zadane = document.getElementById("heslo").value.trim();
+    try {
+      const res = await fetch("./kody.txt", { cache: "no-store" });
+      const text = await res.text();
+      const hesla = text.split(/\r?\n/).map(h => h.trim()).filter(Boolean);
+      if (!hesla.includes(zadane)) {
+        alert("Nesprávné heslo.");
+        return;
+      }
+      form.submit();
+    } catch (err) {
+      alert("Nepodařilo se ověřit heslo.");
+    }
+  });
+}
