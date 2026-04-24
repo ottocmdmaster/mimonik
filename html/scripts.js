@@ -74,7 +74,7 @@ document.addEventListener("keydown", (e) => {
   }
 });
 
-const TOKEN_PLATNOST_MS = 60 * 60 * 1000;
+const TOKEN_PLATNOST_MS = 30 * 60 * 1000;
 
 function nactiToken() {
   try {
@@ -167,6 +167,12 @@ if (pozdravEl) {
     if (opravneni.includes("D")) {
       document.getElementById("github-info").style.display = "";
     }
+    const zbyva = TOKEN_PLATNOST_MS - (Date.now() - mimonikToken.vytvoren);
+    setTimeout(() => {
+      sessionStorage.removeItem("mimonik-token");
+      alert("Byl jsi automaticky odhlášen po 30 minutách.");
+      window.location.href = "secret.html";
+    }, Math.max(0, zbyva));
   }
   const odhlasitBtn = document.getElementById("odhlasit");
   if (odhlasitBtn) {
