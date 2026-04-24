@@ -71,6 +71,28 @@ document.addEventListener("keydown", (e) => {
 
 const TOKEN_PLATNOST_MS = 30 * 60 * 1000;
 
+async function odvozHash(heslo, saltHex, iteraci = 100000) {
+  const enc = new TextEncoder();
+  const saltBytes = new Uint8Array(saltHex.match(/.{2}/g).map(b => parseInt(b, 16)));
+  const key = await crypto.subtle.importKey(
+    "raw", enc.encode(heslo), { name: "PBKDF2" }, false, ["deriveBits"]
+  );
+  const bits = await crypto.subtle.deriveBits(
+    { name: "PBKDF2", salt: saltBytes, iterations: iteraci, hash: "SHA-256" },
+    key, 256
+  );
+  return [...new Uint8Array(bits)].map(b => b.toString(16).padStart(2, "0")).join("");
+}
+
+async function overHeslo(ulozene, zadane) {
+  if (ulozene.startsWith("pbkdf2$")) {
+    const [, iter, salt, hash] = ulozene.split("$");
+    const vypocteny = await odvozHash(zadane, salt, parseInt(iter, 10));
+    return vypocteny === hash;
+  }
+  return ulozene === zadane;
+}
+
 function nactiToken() {
   try {
     const raw = sessionStorage.getItem("mimonik-token");
@@ -106,7 +128,7 @@ if (loginForm) {
         (radky[1] || "").toUpperCase().split(/[^A-Z]+/).filter(Boolean)
       )];
       if (opravneni.length === 0) opravneni.push("B");
-      if (ulozeneHeslo !== heslo) {
+      if (!(await overHeslo(ulozeneHeslo, heslo))) {
         alert("Nesprávné přihlašovací údaje.");
         return;
       }
@@ -153,7 +175,6 @@ if (pozdravEl) {
       ? `Oprávnění: ${opravneni.join(", ")}`
       : "Oprávnění: (neuvedeno)";
     document.getElementById("form-uzivatel").value = mimonikToken.uzivatel;
-    document.getElementById("form-token").value = mimonikToken.token;
     if (opravneni.includes("B")) {
       document.getElementById("upload-form").style.display = "none";
       document.getElementById("zakaz").style.display = "";
