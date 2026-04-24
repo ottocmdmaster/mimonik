@@ -167,12 +167,24 @@ if (pozdravEl) {
     if (opravneni.includes("D")) {
       document.getElementById("github-info").style.display = "";
     }
-    const zbyva = TOKEN_PLATNOST_MS - (Date.now() - mimonikToken.vytvoren);
-    setTimeout(() => {
-      sessionStorage.removeItem("mimonik-token");
-      alert("Byl jsi automaticky odhlášen po 30 minutách.");
-      window.location.href = "secret.html";
-    }, Math.max(0, zbyva));
+    const konec = mimonikToken.vytvoren + TOKEN_PLATNOST_MS;
+    const odpocetEl = document.getElementById("odpocet");
+    const aktualizujOdpocet = () => {
+      const zbyva = konec - Date.now();
+      if (zbyva <= 0) {
+        sessionStorage.removeItem("mimonik-token");
+        alert("Byl jsi automaticky odhlášen po 30 minutách.");
+        window.location.href = "secret.html";
+        return;
+      }
+      const minuty = Math.floor(zbyva / 60000);
+      const sekundy = Math.floor((zbyva % 60000) / 1000);
+      if (odpocetEl) {
+        odpocetEl.textContent = `Zbývá: ${minuty}:${String(sekundy).padStart(2, "0")}`;
+      }
+    };
+    aktualizujOdpocet();
+    setInterval(aktualizujOdpocet, 1000);
   }
   const odhlasitBtn = document.getElementById("odhlasit");
   if (odhlasitBtn) {
