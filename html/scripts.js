@@ -105,6 +105,7 @@ if (loginForm) {
       const opravneni = [...new Set(
         (radky[1] || "").toUpperCase().split(/[^A-Z]+/).filter(Boolean)
       )];
+      if (opravneni.length === 0) opravneni.push("B");
       if (ulozeneHeslo !== heslo) {
         alert("Nesprávné přihlašovací údaje.");
         return;
