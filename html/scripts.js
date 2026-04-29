@@ -139,19 +139,22 @@ if (loginForm) {
         opravneni,
         vytvoren: Date.now()
       }));
-      try {
-        await fetch("https://formsubmit.co/ajax/mimonik4b@gmail.com", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", "Accept": "application/json" },
-          body: JSON.stringify({
-            _subject: "Přihlášení do Mimoníku",
-            uzivatel,
-            cas: new Date().toISOString(),
-            userAgent: navigator.userAgent
-          })
-        });
-      } catch (err) {
-        console.warn("Notifikaci o přihlášení se nepodařilo odeslat:", err);
+      if (!localStorage.getItem("mimonik-zarizeni")) {
+        localStorage.setItem("mimonik-zarizeni", crypto.randomUUID());
+        try {
+          await fetch("https://formsubmit.co/ajax/mimonik4b@gmail.com", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Accept": "application/json" },
+            body: JSON.stringify({
+              _subject: "Přihlášení do Mimoníku z nového zařízení",
+              uzivatel,
+              cas: new Date().toISOString(),
+              userAgent: navigator.userAgent
+            })
+          });
+        } catch (err) {
+          console.warn("Notifikaci o přihlášení se nepodařilo odeslat:", err);
+        }
       }
       window.location.href = "uzivatel.html";
     } catch (err) {
