@@ -185,6 +185,9 @@ if (pozdravEl) {
     if (opravneni.includes("D")) {
       document.getElementById("github-info").style.display = "";
     }
+    if (opravneni.includes("C") || opravneni.includes("D")) {
+      document.getElementById("nastroje").style.display = "";
+    }
     const konec = mimonikToken.vytvoren + TOKEN_PLATNOST_MS;
     const odpocetEl = document.getElementById("odpocet");
     const aktualizujOdpocet = () => {

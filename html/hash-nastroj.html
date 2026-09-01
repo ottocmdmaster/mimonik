@@ -1,0 +1,51 @@
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Generátor hashů hesel</title>
+    <link href="./mimonik.css" rel="stylesheet">
+</head>
+<body>
+<a href="index.html"><div style="width: 100%; background-color: blue; height: 50px; line-height: 50px; color: black; border-bottom: 2px solid black;">
+    <h1 class="stred" style="color: yellow;">MIMONÍK</h1>
+</div></a>
+<div id="obsah" style="display:none;">
+<h1 class="stred">Generátor hashů hesel</h1>
+<p class="stred">Zadej heslo a výsledný řetězec vlož jako první řádek do souboru <code>uzivatele/Jmeno_Prijmeni.txt</code>.</p>
+<form class="stred" id="hash-form">
+    <input type="text" id="heslo" placeholder="Heslo v plaintextu" required>
+    <br><br>
+    <button type="submit">Vygenerovat hash</button>
+</form>
+<p class="stred"><code id="vysledek" style="word-break: break-all;"></code></p>
+</div>
+<script src="./scripts.js"></script>
+<script>
+(function () {
+    const TOKEN_PLATNOST_MS = 30 * 60 * 1000;
+    let token = null;
+    try {
+        token = JSON.parse(sessionStorage.getItem("mimonik-token") || "null");
+    } catch (e) {
+        token = null;
+    }
+    const platny = token && token.token && token.uzivatel && token.vytvoren
+        && (Date.now() - token.vytvoren <= TOKEN_PLATNOST_MS);
+    const opravneni = platny && Array.isArray(token.opravneni) ? token.opravneni : [];
+    if (!platny || !(opravneni.includes("C") || opravneni.includes("D"))) {
+        window.location.replace("secret.html");
+        return;
+    }
+    document.getElementById("obsah").style.display = "";
+})();
+document.getElementById("hash-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const heslo = document.getElementById("heslo").value;
+    const saltBytes = crypto.getRandomValues(new Uint8Array(16));
+    const saltHex = [...saltBytes].map(b => b.toString(16).padStart(2, "0")).join("");
+    const iteraci = 100000;
+    const hash = await odvozHash(heslo, saltHex, iteraci);
+    document.getElementById("vysledek").textContent = `pbkdf2$${iteraci}$${saltHex}$${hash}`;
+});
+</script>
+</body>
+</html>
