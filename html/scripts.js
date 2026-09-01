@@ -223,7 +223,14 @@ if (nahraniForm) {
       const res = await fetch("./kody.txt", { cache: "no-store" });
       const text = await res.text();
       const hesla = text.split(/\r?\n/).map(h => h.trim()).filter(Boolean);
-      if (!hesla.includes(zadane)) {
+      let platny = false;
+      for (const ulozene of hesla) {
+        if (await overHeslo(ulozene, zadane)) {
+          platny = true;
+          break;
+        }
+      }
+      if (!platny) {
         alert("Nesprávné heslo.");
         return;
       }
