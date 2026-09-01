@@ -151,3 +151,12 @@ color:black;
 .stred{
 text-align: center;
 }
+.pocitadlo{
+margin-top: 20px;
+padding: 10px 0;
+font-size: 14px;
+}
+.pocitadlo img{
+vertical-align: middle;
+margin-left: 6px;
+}
