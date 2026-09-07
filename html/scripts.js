@@ -180,6 +180,7 @@ if (pozdravEl) {
     if (opravneni.includes("D")) {
       document.getElementById("github-info").style.display = "";
       document.getElementById("sprava-uctu").style.display = "";
+      document.getElementById("uprava-tridy").style.display = "";
     }
     if (opravneni.includes("C") || opravneni.includes("D")) {
       document.getElementById("nastroje").style.display = "";
