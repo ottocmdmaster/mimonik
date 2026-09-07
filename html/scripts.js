@@ -179,6 +179,7 @@ if (pozdravEl) {
       : "Oprávnění: (neuvedeno)";
     if (opravneni.includes("D")) {
       document.getElementById("github-info").style.display = "";
+      document.getElementById("sprava-uctu").style.display = "";
     }
     if (opravneni.includes("C") || opravneni.includes("D")) {
       document.getElementById("nastroje").style.display = "";
