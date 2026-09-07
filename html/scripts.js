@@ -187,6 +187,7 @@ if (pozdravEl) {
     }
     if (opravneni.includes("C") || opravneni.includes("D")) {
       document.getElementById("nastroje").style.display = "";
+      document.getElementById("github-nahrani").style.display = "";
     }
     const konec = mimonikToken.vytvoren + TOKEN_PLATNOST_MS;
     const odpocetEl = document.getElementById("odpocet");

@@ -1,0 +1,36 @@
+name: Aktualizace čísla Mimoníku
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "html/images/pdf/*.pdf"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  aktualizuj:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Stáhni repozitář
+        uses: actions/checkout@v4
+
+      - name: Nainstaluj poppler-utils (pdftoppm)
+        run: sudo apt-get update && sudo apt-get install -y poppler-utils
+
+      - name: Spusť aktualizuj.sh
+        run: ./aktualizuj.sh
+
+      - name: Commitni vygenerované stránky
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add html/images/strany
+          if git diff --cached --quiet; then
+            echo "Žádné nové stránky k commitnutí."
+          else
+            git commit -m "Automatická aktualizace stránek časopisu"
+            git push
+          fi
