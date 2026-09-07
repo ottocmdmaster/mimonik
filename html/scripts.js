@@ -177,11 +177,6 @@ if (pozdravEl) {
     document.getElementById("opravneni").textContent = opravneni.length
       ? `Oprávnění: ${opravneni.join(", ")}`
       : "Oprávnění: (neuvedeno)";
-    document.getElementById("form-uzivatel").value = mimonikToken.uzivatel;
-    if (opravneni.includes("B")) {
-      document.getElementById("upload-form").style.display = "none";
-      document.getElementById("zakaz").style.display = "";
-    }
     if (opravneni.includes("D")) {
       document.getElementById("github-info").style.display = "";
     }
