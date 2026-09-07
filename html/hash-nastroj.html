@@ -31,7 +31,7 @@
     const platny = token && token.token && token.uzivatel && token.vytvoren
         && (Date.now() - token.vytvoren <= TOKEN_PLATNOST_MS);
     const opravneni = platny && Array.isArray(token.opravneni) ? token.opravneni : [];
-    if (!platny || !(opravneni.includes("C") || opravneni.includes("D"))) {
+    if (!platny || !opravneni.includes("D")) {
         window.location.replace("secret.html");
         return;
     }

@@ -181,9 +181,9 @@ if (pozdravEl) {
       document.getElementById("github-info").style.display = "";
       document.getElementById("sprava-uctu").style.display = "";
       document.getElementById("uprava-tridy").style.display = "";
+      document.getElementById("nastroje").style.display = "";
     }
     if (opravneni.includes("C") || opravneni.includes("D")) {
-      document.getElementById("nastroje").style.display = "";
       document.getElementById("github-nahrani").style.display = "";
     }
     const konec = mimonikToken.vytvoren + TOKEN_PLATNOST_MS;
