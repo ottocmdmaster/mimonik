@@ -34,3 +34,25 @@ jobs:
             git commit -m "Automatická aktualizace stránek časopisu"
             git push
           fi
+
+      - name: Upozornění na selhání (e-mail)
+        if: failure()
+        run: |
+          BODY=$(python3 -c "
+import json, os
+
+run_url = f\"{os.environ['GITHUB_SERVER_URL']}/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{os.environ['GITHUB_RUN_ID']}\"
+zprava = (
+    'Automatické zpracování PDF čísla Mimoníku selhalo. '
+    'Zkontroluj, že název souboru odpovídá konvenci MMRR.pdf nebo MM+MMRR.pdf. '
+    f'Detail běhu: {run_url}'
+)
+print(json.dumps({
+    '_subject': 'Aktualizace čísla Mimoníku selhala',
+    'zprava': zprava,
+}))
+")
+          curl -s -X POST "https://formsubmit.co/ajax/mimonik4b@gmail.com" \
+            -H "Content-Type: application/json" \
+            -H "Accept: application/json" \
+            -d "$BODY"
