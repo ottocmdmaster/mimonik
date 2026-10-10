@@ -1,13 +1,22 @@
-name = "mimonik-test"
+name = "mimonik"
 compatibility_date = "2026-04-24"
 compatibility_flags = ["nodejs_compat"]
-
-routes = [
-  { pattern = "mimonik-test.knyt.tl", custom_domain = true }
-]
 
 [observability]
 enabled = true
 
 [assets]
+directory = "html"
+
+# Větev test: `wrangler deploy --env test`
+[env.test]
+name = "mimonik-test"
+routes = [
+  { pattern = "mimonik-test.knyt.tl", custom_domain = true }
+]
+
+[env.test.observability]
+enabled = true
+
+[env.test.assets]
 directory = "html"
