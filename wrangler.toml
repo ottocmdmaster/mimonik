@@ -16,3 +16,6 @@ enabled = true
 
 [assets]
 directory = "html"
+
+# Preview větví (wrangler preview); nastavení se dědí z hlavní konfigurace
+[previews]
