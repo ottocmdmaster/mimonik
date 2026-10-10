@@ -38,20 +38,8 @@ jobs:
       - name: Upozornění na selhání (e-mail)
         if: failure()
         run: |
-          BODY=$(python3 -c "
-import json, os
-
-run_url = f\"{os.environ['GITHUB_SERVER_URL']}/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{os.environ['GITHUB_RUN_ID']}\"
-zprava = (
-    'Automatické zpracování PDF čísla Mimoníku selhalo. '
-    'Zkontroluj, že název souboru odpovídá konvenci MMRR.pdf nebo MM+MMRR.pdf. '
-    f'Detail běhu: {run_url}'
-)
-print(json.dumps({
-    '_subject': 'Aktualizace čísla Mimoníku selhala',
-    'zprava': zprava,
-}))
-")
+          RUN_URL="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          BODY=$(jq -n --arg zprava "Automatické zpracování PDF čísla Mimoníku selhalo. Zkontroluj, že název souboru odpovídá konvenci MMRR.pdf nebo MM+MMRR.pdf. Detail běhu: $RUN_URL" '{_subject: "Aktualizace čísla Mimoníku selhala", zprava: $zprava}')
           curl -s -X POST "https://formsubmit.co/ajax/mimonik4b@gmail.com" \
             -H "Content-Type: application/json" \
             -H "Accept: application/json" \
