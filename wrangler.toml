@@ -6,6 +6,11 @@ compatibility_flags = ["nodejs_compat"]
 workers_dev = true
 preview_urls = true
 
+# Preview doména (v UI: Custom domain, type = Preview): <alias>.mimonik-test.knyt.tl
+routes = [
+  { pattern = "mimonik-test.knyt.tl", custom_domain = true, enabled = false, previews_enabled = true }
+]
+
 [observability]
 enabled = true
 
