@@ -91,6 +91,12 @@
     <p><code>git pull</code> – stáhne nejnovější změny z repozitáře</p>
     <p><code>git commit -a -m "zpráva"</code> – uloží změny s popisem</p>
     <p><code>git push</code> – odešle změny na GitHub</p>
+    <h2>Nasazení a preview</h2>
+    <p>Produkce (větev <code>main</code>): <code>https://mimonik.knyt.tl</code> – po každém pushi do <code>main</code> se web sám nasadí přes Cloudflare Workers Builds.<br>
+    Preview (větev <code>preview</code>): <code>https://preview.mimonik.knyt.tl</code> – zkušební verze, na které se zkouší změny před přesunem do <code>main</code>.</p>
+    <p>Aktualizace preview z větve <code>preview</code>: <code>git checkout preview</code>, změny commitni a pushni, pak spusť <code>npx wrangler preview</code> (vyžaduje přihlášení k Cloudflare účtu).<br>
+    Adresa preview je vždy <code>&lt;název větve&gt;.mimonik.knyt.tl</code>, takže jiná větev dostane vlastní adresu.</p>
+    <p>Konfigurace je v souboru <code>wrangler.toml</code> v kořeni repozitáře (domény, preview, složka <code>html</code>). Pozor: wrangler při nasazení nechá u Workeru jen domény uvedené v tomto souboru, ostatní odebere.</p>
 </div>
 <p class="stred">
     <button type="button" id="odhlasit">Odhlásit</button>
