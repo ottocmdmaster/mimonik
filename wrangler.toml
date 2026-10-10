@@ -2,6 +2,10 @@ name = "mimonik"
 compatibility_date = "2026-04-24"
 compatibility_flags = ["nodejs_compat"]
 
+# Preview URL větví: https://<alias>-mimonik.knyttl.workers.dev
+workers_dev = true
+preview_urls = true
+
 [observability]
 enabled = true
 
