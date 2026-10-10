@@ -1,0 +1,13 @@
+name = "mimonik-test"
+compatibility_date = "2026-04-24"
+compatibility_flags = ["nodejs_compat"]
+
+routes = [
+  { pattern = "mimonik-test.knyt.tl", custom_domain = true }
+]
+
+[observability]
+enabled = true
+
+[assets]
+directory = "html"
