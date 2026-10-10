@@ -8,6 +8,7 @@ preview_urls = true
 
 # Preview doména (v UI: Custom domain, type = Preview): <alias>.mimonik-test.knyt.tl
 routes = [
+  { pattern = "mimonik.knyt.tl", custom_domain = true },
   { pattern = "mimonik-test.knyt.tl", custom_domain = true, enabled = false, previews_enabled = true }
 ]
 
