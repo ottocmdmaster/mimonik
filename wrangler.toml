@@ -20,9 +20,10 @@ directory = "html"
 binding = "ASSETS"
 run_worker_first = ["/api/*"]
 
-# Odběry upozornění (KV se při nasazení vytvoří automaticky, pokud ho wrangler umí zřídit)
+# Odběry upozornění
 [[kv_namespaces]]
 binding = "SUBS"
+id = "552420782a0b4b759fe52ce0db30778e"
 
 # Veřejný VAPID klíč; privátní (VAPID_PRIVATE_JWK) a NOTIFY_TOKEN jsou secrets
 [vars]
