@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OZNÁMENÍ</title>
+    <link href="./mimonik.css" rel="stylesheet">
+    <link rel="manifest" href="./manifest.webmanifest">
+    <link rel="apple-touch-icon" href="./images/ikony/apple-touch-icon.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+</head>
+<body>
+<a href="index.html"><div style="width: 100%; background-color: blue; height: 50px; line-height: 50px; color: black; border-bottom: 2px solid black;">
+    <h1 class="stred" style="color: yellow;">MIMONÍK</h1>
+</div></a>
+<div>
+    <input type="checkbox" id="menu-toggle" class="menu-toggle">
+    <label for="menu-toggle" class="menu-icon">
+        <div></div>
+        <div></div>
+        <div></div>
+    </label>
+    <nav class="nav-menu">
+        <a href="index.html">HLAVNÍ STRANA</a>
+        <a href="stahovani.html">SOUBORY KE STAŽENÍ</a>
+        <a href="historie.html">HISTORIE</a>
+        <a href="nahrani.html">NAHRÁNÍ PŘÍSPĚVKŮ</a>
+        <a href="kontakt.html">KONTAKT</a>
+    </nav>
+</div>
+<h1 class="stred">OZNÁMENÍ O NOVÉM ČÍSLE</h1>
+<div class="stred">
+    <p id="oz-stav">Zjišťuji…</p>
+    <button id="oz-tlacitko" type="button" disabled style="font-size: 18px; padding: 10px 20px;">…</button>
+    <p id="oz-napoveda" style="max-width: 500px; margin: 20px auto; padding: 0 16px;"></p>
+</div>
+<script src="./oznameni.js"></script>
+</body>
+</html>

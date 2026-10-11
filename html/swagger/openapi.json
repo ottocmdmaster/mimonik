@@ -1,0 +1,101 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Mimoník API",
+    "description": "Odběry upozornění o novém čísle časopisu (Web Push, VAPID). Upozornění nenese text, zobrazí ho service worker.",
+    "version": "1.0.0"
+  },
+  "servers": [{ "url": "/" }],
+  "tags": [{ "name": "push", "description": "Oznámení o novém čísle" }],
+  "paths": {
+    "/api/push/key": {
+      "get": {
+        "tags": ["push"],
+        "summary": "Veřejný VAPID klíč",
+        "description": "Vrací klíč, který prohlížeč použije jako applicationServerKey při odběru.",
+        "responses": {
+          "200": { "description": "Klíč v base64url", "content": { "text/plain": { "schema": { "type": "string" } } } }
+        }
+      }
+    },
+    "/api/push/subscribe": {
+      "post": {
+        "tags": ["push"],
+        "summary": "Zapnout oznámení",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Subscription" } } }
+        },
+        "responses": {
+          "200": { "description": "Odběr uložen", "content": { "text/plain": { "schema": { "type": "string", "example": "ok" } } } },
+          "400": { "description": "Neplatné tělo, endpoint nebo klíče" }
+        }
+      }
+    },
+    "/api/push/unsubscribe": {
+      "post": {
+        "tags": ["push"],
+        "summary": "Vypnout oznámení",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["endpoint"],
+                "properties": { "endpoint": { "type": "string", "format": "uri" } }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Odběr smazán (i když neexistoval)" },
+          "400": { "description": "Neplatný endpoint" }
+        }
+      }
+    },
+    "/api/push/notify": {
+      "post": {
+        "tags": ["push"],
+        "summary": "Rozeslat upozornění o novém čísle",
+        "description": "Volá GitHub workflow po přidání nového PDF. Odběry, které služba označí za zaniklé (404/410), se smažou.",
+        "security": [{ "bearer": [] }],
+        "responses": {
+          "200": {
+            "description": "Výsledek rozeslání",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "poslano": { "type": "integer" },
+                    "smazano": { "type": "integer" },
+                    "chyb": { "type": "integer" }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "Chybí nebo je špatný token" }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": { "bearer": { "type": "http", "scheme": "bearer", "description": "Hodnota NOTIFY_TOKEN" } },
+    "schemas": {
+      "Subscription": {
+        "type": "object",
+        "required": ["endpoint", "keys"],
+        "properties": {
+          "endpoint": { "type": "string", "format": "uri", "example": "https://web.push.apple.com/..." },
+          "keys": {
+            "type": "object",
+            "required": ["p256dh", "auth"],
+            "properties": { "p256dh": { "type": "string" }, "auth": { "type": "string" } }
+          }
+        }
+      }
+    }
+  }
+}
