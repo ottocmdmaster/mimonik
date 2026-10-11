@@ -120,4 +120,32 @@ else:
     print(f"stahovani.html už bylo aktuální pro: {label}")
 PY
 
+# Seznam všech čísel pro appku (cisla.json)
+python3 - <<'PY'
+import json, os, re
+
+MESICE = ["leden", "únor", "březen", "duben", "květen", "červen", "červenec", "srpen", "září", "říjen", "listopad", "prosinec"]
+cisla = []
+for fn in os.listdir("images/pdf"):
+    m2 = re.fullmatch(r"(\d{2})\+(\d{2})(\d{2})\.pdf", fn)
+    m1 = re.fullmatch(r"(\d{2})(\d{2})\.pdf", fn)
+    if m2:
+        m1_, m2_, yy = (int(x) for x in m2.groups())
+        nazev = f"{MESICE[m1_-1]}+{MESICE[m2_-1]} {2000+yy}"
+        poradi = (2000 + yy) * 100 + m2_
+    elif m1:
+        mm, yy = (int(x) for x in m1.groups())
+        nazev = f"{MESICE[mm-1]} {2000+yy}"
+        poradi = (2000 + yy) * 100 + mm
+    else:
+        continue
+    cisla.append({"id": fn[:-4], "nazev": nazev, "pdf": f"images/pdf/{fn}", "poradi": poradi})
+
+cisla.sort(key=lambda c: c["poradi"], reverse=True)
+with open("cisla.json", "w", encoding="utf-8") as f:
+    json.dump(cisla, f, ensure_ascii=False, indent=2)
+    f.write("\n")
+print(f"cisla.json: {len(cisla)} čísel")
+PY
+
 echo "Hotovo!"
