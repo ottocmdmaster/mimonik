@@ -183,7 +183,7 @@ if (pozdravEl) {
       document.getElementById("uprava-tridy").style.display = "";
       document.getElementById("nastroje").style.display = "";
     }
-    if (opravneni.includes("C") || opravneni.includes("D")) {
+    if (opravneni.includes("A") || opravneni.includes("C") || opravneni.includes("D")) {
       document.getElementById("github-nahrani").style.display = "";
     }
     const konec = mimonikToken.vytvoren + TOKEN_PLATNOST_MS;
