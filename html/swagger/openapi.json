@@ -1,0 +1,73 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Mimoník",
+    "description": "Soubory, ze kterých čerpá appka Mimoník. `cisla.json` generuje skript `aktualizuj.sh` po každém novém PDF.",
+    "version": "1.0.0"
+  },
+  "servers": [{ "url": "/" }],
+  "paths": {
+    "/cisla.json": {
+      "get": {
+        "summary": "Seznam všech čísel časopisu",
+        "description": "Seřazeno od nejnovějšího. Podle položky s nejvyšším `poradi` appka pozná nové číslo.",
+        "responses": {
+          "200": {
+            "description": "Seznam čísel",
+            "content": {
+              "application/json": {
+                "schema": { "type": "array", "items": { "$ref": "#/components/schemas/Cislo" } },
+                "example": [{ "id": "0326", "nazev": "březen 2026", "pdf": "images/pdf/0326.pdf", "poradi": 202603 }]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/images/pdf/{soubor}": {
+      "get": {
+        "summary": "PDF jednoho čísla",
+        "parameters": [
+          {
+            "name": "soubor",
+            "in": "path",
+            "required": true,
+            "description": "Název souboru ve tvaru MMRR.pdf, nebo MM+MMRR.pdf u dvojčísla (položka `pdf` z cisla.json).",
+            "schema": { "type": "string", "example": "0326.pdf" }
+          }
+        ],
+        "responses": {
+          "200": { "description": "PDF", "content": { "application/pdf": { "schema": { "type": "string", "format": "binary" } } } },
+          "404": { "description": "Číslo neexistuje" }
+        }
+      }
+    },
+    "/images/strany/M{strana}.jpg": {
+      "get": {
+        "summary": "Stránka aktuálního čísla jako obrázek",
+        "description": "Používá web na hlavní straně. Vždy jen stránky nejnovějšího čísla, číslované od 1.",
+        "parameters": [
+          { "name": "strana", "in": "path", "required": true, "schema": { "type": "integer", "minimum": 1, "example": 1 } }
+        ],
+        "responses": {
+          "200": { "description": "JPG", "content": { "image/jpeg": { "schema": { "type": "string", "format": "binary" } } } },
+          "404": { "description": "Taková strana není" }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Cislo": {
+        "type": "object",
+        "required": ["id", "nazev", "pdf", "poradi"],
+        "properties": {
+          "id": { "type": "string", "example": "0326" },
+          "nazev": { "type": "string", "example": "březen 2026" },
+          "pdf": { "type": "string", "description": "Cesta k PDF vůči kořeni webu", "example": "images/pdf/0326.pdf" },
+          "poradi": { "type": "integer", "description": "RRRRMM, u dvojčísla pozdější měsíc", "example": 202603 }
+        }
+      }
+    }
+  }
+}
