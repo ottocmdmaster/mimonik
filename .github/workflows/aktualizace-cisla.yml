@@ -35,17 +35,6 @@ jobs:
             git push
           fi
 
-      - name: Upozornit odběratele na nové číslo
-        if: github.event_name == 'push' && success()
-        env:
-          NOTIFY_TOKEN: ${{ secrets.NOTIFY_TOKEN }}
-        run: |
-          if git diff --name-only --diff-filter=A "${{ github.event.before }}" "${{ github.sha }}" -- 'html/images/pdf/*.pdf' | grep -q .; then
-            curl -fsS -X POST "https://mimonik.knyt.tl/api/push/notify" -H "Authorization: Bearer $NOTIFY_TOKEN"
-          else
-            echo "Žádné nové PDF, upozornění se neposílá."
-          fi
-
       - name: Upozornění na selhání (e-mail)
         if: failure()
         run: |

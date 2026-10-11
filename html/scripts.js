@@ -29,22 +29,6 @@ async function loadSlides() {
 
   container.innerHTML = html;
   showSlides(slideIndex);
-  pridejGesta(container.parentNode);
-}
-
-function pridejGesta(box) {
-  let x0 = null, y0 = null;
-  box.addEventListener("touchstart", (e) => {
-    x0 = e.touches[0].clientX;
-    y0 = e.touches[0].clientY;
-  }, { passive: true });
-  box.addEventListener("touchend", (e) => {
-    if (x0 === null) return;
-    const dx = e.changedTouches[0].clientX - x0;
-    const dy = e.changedTouches[0].clientY - y0;
-    x0 = null;
-    if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) plusSlides(dx < 0 ? 1 : -1);
-  }, { passive: true });
 }
 
 function plusSlides(n) {
@@ -67,18 +51,12 @@ function showSlides(n) {
     dots[i].className = dots[i].className.replace(" active", "");
   }
   slides[slideIndex - 1].style.display = "block";
-  const pocitadlo = document.getElementById("strana-info");
-  if (pocitadlo) pocitadlo.textContent = "Strana " + slideIndex + " z " + slides.length;
   if (dots.length > 0) {
     dots[slideIndex - 1].className += " active";
   }
 }
 
 loadSlides();
-
-if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("./sw.js").catch(() => {});
-}
 
 const SECRET = "mniok";
 let buffer = "";
