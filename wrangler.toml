@@ -30,3 +30,11 @@ VAPID_PUBLIC = "BOuwUg6iOI2A8OS4xwds-TtBWtyH9TX8_ee-hjBiEmZxoe5MLyaTQp71dz80NBdx
 
 # Preview větví (wrangler preview); nastavení se dědí z hlavní konfigurace
 [previews]
+
+[previews.vars]
+VAPID_PUBLIC = "BOuwUg6iOI2A8OS4xwds-TtBWtyH9TX8_ee-hjBiEmZxoe5MLyaTQp71dz80NBdxXxpaF5GunC2uEck3bv1qMZc"
+
+# Odběry ve zkušební verzi jsou oddělené od produkce
+[[previews.kv_namespaces]]
+binding = "SUBS"
+id = "77434406c1384ba19340561e3288b2ab"
