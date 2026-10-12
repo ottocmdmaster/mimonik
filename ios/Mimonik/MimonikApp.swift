@@ -22,8 +22,12 @@ struct MimonikApp: App {
         }
         .onChange(of: scenePhase) { faze in
             if faze == .active {
-                Task { await store.obnov() }
+                Task {
+                    await store.obnov()
+                    Notifier.aktualizujOdznak(store.cisla)
+                }
             } else if faze == .background {
+                Notifier.aktualizujOdznak(store.cisla)
                 Notifier.naplanujKontrolu()
             }
         }

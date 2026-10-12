@@ -2,8 +2,9 @@ import SwiftUI
 
 struct HomeView: View {
     @EnvironmentObject var store: CislaStore
-    @State private var oznameni = Notifier.zapnuto
-    @State private var zablokovano = false
+    @State private var hledani = ""
+    @State private var jenOblibene = false
+    @State private var zmena = 0  // změna přečtených/oblíbených čísel → překreslení seznamu
 
     var body: some View {
         NavigationView {
@@ -22,12 +23,19 @@ struct HomeView: View {
                     }
                 }
 
-                Section(header: Text("Všechna čísla"), footer: chybaText) {
-                    ForEach(store.cisla) { cislo in
+                Section(header: Text(jenOblibene ? "Oblíbená čísla" : "Všechna čísla"), footer: chybaText) {
+                    ForEach(zobrazena) { cislo in
                         NavigationLink(destination: CisloView(cislo: cislo)) {
                             HStack {
+                                if !Stav.jePrectene(cislo.id) {
+                                    Circle().fill(Color.accentColor).frame(width: 9, height: 9)
+                                }
                                 Text(cislo.nazev)
+                                    .fontWeight(Stav.jePrectene(cislo.id) ? .regular : .semibold)
                                 Spacer()
+                                if Stav.jePoblibene(cislo.id) {
+                                    Image(systemName: "star.fill").foregroundColor(.yellow)
+                                }
                                 if store.stazena.contains(cislo.id) {
                                     Image(systemName: "arrow.down.circle.fill").foregroundColor(.secondary)
                                 }
@@ -36,22 +44,23 @@ struct HomeView: View {
                     }
                 }
 
-                Section(footer: Text("Appka občas v pozadí zkontroluje, jestli nevyšlo nové číslo. Kdy přesně, určuje iPhone, takže upozornění může přijít s odstupem hodin.")) {
-                    Toggle("Upozornit na nové číslo", isOn: Binding(
-                        get: { oznameni },
-                        set: { zapnout in Task { await prepni(zapnout) } }
-                    ))
-                    if zablokovano {
-                        Button("Povolit oznámení v Nastavení") {
-                            if let url = URL(string: UIApplication.openSettingsURLString) {
-                                UIApplication.shared.open(url)
-                            }
-                        }
+                Section {
+                    NavigationLink(destination: NastaveniView()) {
+                        Label("Nastavení upozornění", systemImage: "bell")
                     }
                 }
             }
             .navigationTitle("Mimoník")
             .refreshable { await store.obnov() }
+            .searchable(text: $hledani, prompt: "Hledat číslo")
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button { jenOblibene.toggle() } label: {
+                        Image(systemName: jenOblibene ? "star.fill" : "star")
+                    }
+                }
+            }
+            .onReceive(NotificationCenter.default.publisher(for: Stav.zmena)) { _ in zmena += 1 }
             .overlay {
                 if store.cisla.isEmpty && store.nacita { ProgressView() }
             }
@@ -60,18 +69,18 @@ struct HomeView: View {
         .task {
             await store.obnov()
             if Notifier.zapnuto { Notifier.oznacJakoVidene(store.cisla) }
-            let povoleno = await Notifier.povoleno()
-            zablokovano = Notifier.zapnuto && !povoleno
+        }
+    }
+
+    private var zobrazena: [Cislo] {
+        _ = zmena
+        return store.cisla.filter { c in
+            (!jenOblibene || Stav.jePoblibene(c.id)) &&
+            (hledani.isEmpty || c.nazev.range(of: hledani, options: [.caseInsensitive, .diacriticInsensitive]) != nil)
         }
     }
 
     private var chybaText: some View {
         Group { if let chyba = store.chyba { Text(chyba) } }
-    }
-
-    private func prepni(_ zapnout: Bool) async {
-        let vysledek = await Notifier.nastav(zapnout)
-        oznameni = vysledek
-        zablokovano = zapnout && !vysledek
     }
 }
