@@ -1,5 +1,6 @@
 package tl.knyt.mimonik
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -13,9 +14,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DownloadForOffline
 import androidx.compose.material.icons.filled.Notifications
@@ -200,7 +199,7 @@ fun HomeScreen(store: CislaStore, onOtevrit: (Cislo) -> Unit, onNastaveni: () ->
                             Modifier
                                 .size(10.dp)
                                 .clip(CircleShape)
-                                .let { if (!prectene) it.then(Modifier.background(MaterialTheme.colorScheme.primary)) else it }
+                                .background(if (prectene) Color.Transparent else MaterialTheme.colorScheme.primary)
                         )
                         Text(
                             c.nazev,
