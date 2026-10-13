@@ -55,7 +55,7 @@ struct CisloView: View {
                 }
             } else {
                 VStack(spacing: 12) {
-                    ProgressView()
+                    MimonChodi()
                     Text("Stahuji číslo…")
                 }
             }
