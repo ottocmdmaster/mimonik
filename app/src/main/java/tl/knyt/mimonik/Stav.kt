@@ -28,6 +28,17 @@ data class Anotace(
 
 enum class RezimCteni { NORMALNI, SEPIE, TMAVY }
 
+/** Souhrn čtení pro obrazovku Statistiky. */
+data class Statistiky(
+    val prectena: Int,
+    val celkem: Int,
+    val otevreneStrany: Int,
+    val dobaMs: Long,
+    val nejctenejsi: Cislo?,
+    val nejctenejsiDobaMs: Long,
+    val nejctenejsiOtevreni: Int
+)
+
 /** Stav čtení (přečtené, pozice, oblíbené, záložky, anotace, zobrazení) uložený v SharedPreferences. */
 object Stav {
     /** Zvýší se po každé změně, aby se překreslily seznamy (čti ho v kompozici). */
@@ -139,4 +150,66 @@ object Stav {
     fun zoom(ctx: Context): Float = p(ctx).getFloat("zoom", 1f).coerceIn(1f, 4f)
 
     fun ulozZoom(ctx: Context, z: Float) { p(ctx).edit().putFloat("zoom", z).apply() }
+
+    // --- poslední otevřené číslo (pro „Pokračovat ve čtení") ---
+
+    fun posledniOtevrene(ctx: Context): String? = p(ctx).getString("posledniOtevrene", null)
+
+    fun nastavPosledniOtevrene(ctx: Context, id: String) {
+        p(ctx).edit().putString("posledniOtevrene", id).apply()
+        zmena()
+    }
+
+    // --- obrazovka svítí při čtení ---
+
+    fun svitit(ctx: Context): Boolean = p(ctx).getBoolean("svitit", true)
+
+    fun ulozSvitit(ctx: Context, v: Boolean) { p(ctx).edit().putBoolean("svitit", v).apply() }
+
+    // --- statistiky čtení ---
+
+    fun otevreneStrany(ctx: Context, id: String): Set<Int> =
+        (p(ctx).getString("strany_$id", "") ?: "").split(',').mapNotNull { it.toIntOrNull() }.toSet()
+
+    /** Zapamatuje, že uživatel viděl danou stranu. */
+    fun zaznamenejStranu(ctx: Context, id: String, strana: Int) {
+        val s = otevreneStrany(ctx, id)
+        if (strana in s) return
+        p(ctx).edit().putString("strany_$id", (s + strana).sorted().joinToString(",")).apply()
+    }
+
+    fun pocetOtevreni(ctx: Context, id: String): Int = p(ctx).getInt("otevreni_$id", 0)
+
+    fun zaznamenejOtevreni(ctx: Context, id: String) {
+        p(ctx).edit().putInt("otevreni_$id", pocetOtevreni(ctx, id) + 1).apply()
+    }
+
+    fun dobaCteni(ctx: Context, id: String): Long = p(ctx).getLong("doba_$id", 0L)
+
+    fun pridejDobuCteni(ctx: Context, id: String, ms: Long) {
+        if (ms <= 0) return
+        p(ctx).edit().putLong("doba_$id", dobaCteni(ctx, id) + ms).apply()
+    }
+
+    fun statistiky(ctx: Context, cisla: List<Cislo>): Statistiky {
+        val prectena = mnozina(ctx, "prectena")
+        var strany = 0
+        var doba = 0L
+        for (c in cisla) {
+            strany += otevreneStrany(ctx, c.id).size
+            doba += dobaCteni(ctx, c.id)
+        }
+        val nejctenejsi = cisla
+            .filter { dobaCteni(ctx, it.id) > 0 || pocetOtevreni(ctx, it.id) > 0 }
+            .maxWithOrNull(compareBy({ dobaCteni(ctx, it.id) }, { pocetOtevreni(ctx, it.id) }))
+        return Statistiky(
+            prectena = cisla.count { it.id in prectena },
+            celkem = cisla.size,
+            otevreneStrany = strany,
+            dobaMs = doba,
+            nejctenejsi = nejctenejsi,
+            nejctenejsiDobaMs = nejctenejsi?.let { dobaCteni(ctx, it.id) } ?: 0L,
+            nejctenejsiOtevreni = nejctenejsi?.let { pocetOtevreni(ctx, it.id) } ?: 0
+        )
+    }
 }

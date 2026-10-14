@@ -16,7 +16,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import android.net.Uri
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
+import androidx.navigation.navArgument
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 
@@ -64,17 +67,42 @@ private fun Aplikace(store: CislaStore, cisloZNotifikace: String?, hotovo: () ->
             HomeScreen(
                 store = store,
                 onOtevrit = { nav.navigate("cislo/${it.id}") },
-                onNastaveni = { nav.navigate("nastaveni") }
+                onNastaveni = { nav.navigate("nastaveni") },
+                onHledat = { nav.navigate("hledani") },
+                onStatistiky = { nav.navigate("statistiky") }
             )
         }
         composable("nastaveni") {
             NastaveniScreen(store = store, onBack = { nav.popBackStack() })
         }
-        composable("cislo/{id}") { zaznam ->
+        composable("statistiky") {
+            StatistikyScreen(store = store, onBack = { nav.popBackStack() })
+        }
+        composable("hledani") {
+            HledaniScreen(
+                store = store,
+                onOtevrit = { c, strana, dotaz ->
+                    nav.navigate("cislo/${c.id}?strana=$strana&hledej=${Uri.encode(dotaz)}")
+                },
+                onBack = { nav.popBackStack() }
+            )
+        }
+        composable(
+            "cislo/{id}?strana={strana}&hledej={hledej}",
+            arguments = listOf(
+                navArgument("strana") { type = NavType.IntType; defaultValue = -1 },
+                navArgument("hledej") { type = NavType.StringType; nullable = true; defaultValue = null }
+            )
+        ) { zaznam ->
             val id = zaznam.arguments?.getString("id")
+            val strana = zaznam.arguments?.getInt("strana", -1)?.takeIf { it >= 0 }
+            val hledej = zaznam.arguments?.getString("hledej")
             val cislo = cisla.firstOrNull { it.id == id }
             if (cislo != null) {
-                CisloScreen(cislo = cislo, store = store, onBack = { nav.popBackStack() })
+                CisloScreen(
+                    cislo = cislo, store = store, onBack = { nav.popBackStack() },
+                    pocatecniStrana = strana, hledej = hledej
+                )
             } else {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Text("Číslo nenalezeno.")

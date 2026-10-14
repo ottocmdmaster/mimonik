@@ -15,7 +15,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ManageSearch
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.DownloadForOffline
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Search
@@ -23,6 +25,8 @@ import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -49,6 +53,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.launch
 import java.text.Normalizer
@@ -58,7 +63,13 @@ private fun bezDiakritiky(s: String): String =
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeScreen(store: CislaStore, onOtevrit: (Cislo) -> Unit, onNastaveni: () -> Unit) {
+fun HomeScreen(
+    store: CislaStore,
+    onOtevrit: (Cislo) -> Unit,
+    onNastaveni: () -> Unit,
+    onHledat: () -> Unit,
+    onStatistiky: () -> Unit
+) {
     val ctx = LocalContext.current
     val scope = rememberCoroutineScope()
     val cisla by store.cisla.collectAsStateWithLifecycle()
@@ -68,6 +79,8 @@ fun HomeScreen(store: CislaStore, onOtevrit: (Cislo) -> Unit, onNastaveni: () ->
 
     var hledani by rememberSaveable { mutableStateOf<String?>(null) }
     var jenOblibene by rememberSaveable { mutableStateOf(false) }
+    var menu by remember { mutableStateOf(false) }
+    val velikost = Nastaveni.velikostSeznamu(ctx)
 
     // při otevření appky načíst seznam; uživatel o číslech ví, takže se neoznamují
     LaunchedEffect(Unit) {
@@ -120,8 +133,19 @@ fun HomeScreen(store: CislaStore, onOtevrit: (Cislo) -> Unit, onNastaveni: () ->
                             tint = if (jenOblibene) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurface
                         )
                     }
+                    IconButton(onClick = onHledat) {
+                        Icon(Icons.AutoMirrored.Filled.ManageSearch, contentDescription = "Hledat ve všech číslech")
+                    }
                     IconButton(onClick = onNastaveni) {
-                        Icon(Icons.Default.Notifications, contentDescription = "Nastavení upozornění")
+                        Icon(Icons.Default.Notifications, contentDescription = "Nastavení")
+                    }
+                    Box {
+                        IconButton(onClick = { menu = true }) {
+                            Icon(Icons.Default.MoreVert, contentDescription = "Nabídka")
+                        }
+                        DropdownMenu(menu, { menu = false }) {
+                            DropdownMenuItem(text = { Text("Statistiky čtení") }, onClick = { menu = false; onStatistiky() })
+                        }
                     }
                 }
             )
@@ -144,6 +168,27 @@ fun HomeScreen(store: CislaStore, onOtevrit: (Cislo) -> Unit, onNastaveni: () ->
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                         )
+                    }
+                }
+                val rozectene = Stav.posledniOtevrene(ctx)?.let { id -> cisla.firstOrNull { it.id == id } }
+                if (rozectene != null && hledani == null && !jenOblibene) {
+                    item {
+                        val strana = Stav.pozice(ctx, rozectene.id)
+                        Card(
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(start = 16.dp, end = 16.dp, top = 16.dp)
+                                .clickable { onOtevrit(rozectene) }
+                        ) {
+                            Column(Modifier.padding(20.dp)) {
+                                Text("Pokračovat ve čtení", style = MaterialTheme.typography.titleLarge)
+                                Text(
+                                    rozectene.nazev + (strana?.let { " · strana ${it + 1}" } ?: ""),
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                                )
+                            }
+                        }
                     }
                 }
                 val nejnovejsi = cisla.firstOrNull()
@@ -193,16 +238,17 @@ fun HomeScreen(store: CislaStore, onOtevrit: (Cislo) -> Unit, onNastaveni: () ->
                         modifier = Modifier
                             .fillMaxWidth()
                             .clickable { onOtevrit(c) }
-                            .padding(start = 16.dp, top = 4.dp, bottom = 4.dp)
+                            .padding(start = 16.dp, top = velikost.radekDp.dp, bottom = velikost.radekDp.dp)
                     ) {
                         Box(
                             Modifier
-                                .size(10.dp)
+                                .size(velikost.teckaDp.dp)
                                 .clip(CircleShape)
                                 .background(if (prectene) Color.Transparent else MaterialTheme.colorScheme.primary)
                         )
                         Text(
                             c.nazev,
+                            fontSize = velikost.pismoSp.sp,
                             fontWeight = if (prectene) FontWeight.Normal else FontWeight.Bold,
                             modifier = Modifier.weight(1f)
                         )

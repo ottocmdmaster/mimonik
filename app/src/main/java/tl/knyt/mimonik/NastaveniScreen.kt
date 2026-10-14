@@ -61,6 +61,7 @@ fun NastaveniScreen(store: CislaStore, onBack: () -> Unit) {
     var tichoDo by remember { mutableIntStateOf(Nastaveni.tichoDo(ctx)) }
     var autoStahovat by remember { mutableStateOf(Nastaveni.autoStahovat(ctx)) }
     var jenWifi by remember { mutableStateOf(Nastaveni.jenWifi(ctx)) }
+    var velikost by remember { mutableStateOf(Nastaveni.velikostSeznamu(ctx)) }
     var kontroluji by remember { mutableStateOf(false) }
     var vysledek by remember { mutableStateOf<String?>(null) }
 
@@ -81,7 +82,7 @@ fun NastaveniScreen(store: CislaStore, onBack: () -> Unit) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Upozornění") },
+                title = { Text("Nastavení") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Zpět")
@@ -193,6 +194,19 @@ fun NastaveniScreen(store: CislaStore, onBack: () -> Unit) {
                 if (kontroluji) CircularProgressIndicator(Modifier.size(24.dp), strokeWidth = 2.dp)
             }
             vysledek?.let { Poznamka(it) }
+
+            HorizontalDivider()
+            Nadpis("Vzhled seznamu")
+            Row(Modifier.padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                VelikostSeznamu.values().forEach { v ->
+                    FilterChip(
+                        selected = velikost == v,
+                        onClick = { velikost = v; Nastaveni.nastavVelikostSeznamu(ctx, v) },
+                        label = { Text(v.nazev) }
+                    )
+                }
+            }
+            Poznamka("Velikost písma a výška řádků v seznamu čísel.")
 
             HorizontalDivider()
             Nadpis("Baterie")

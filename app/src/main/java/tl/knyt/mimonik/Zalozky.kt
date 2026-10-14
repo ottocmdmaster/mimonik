@@ -21,6 +21,7 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Slider
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -86,6 +87,8 @@ fun ZobrazeniSheet(
     onJas: (Float) -> Unit,
     zoom: Float,
     onZoom: (Float) -> Unit,
+    svitit: Boolean,
+    onSvitit: (Boolean) -> Unit,
     onZavri: () -> Unit
 ) {
     ModalBottomSheet(onDismissRequest = onZavri) {
@@ -106,6 +109,10 @@ fun ZobrazeniSheet(
                 OutlinedButton({ onZoom((zoom - 0.25f).coerceAtLeast(1f)) }) { Text("−") }
                 OutlinedButton({ onZoom((zoom + 0.25f).coerceAtMost(4f)) }) { Text("+") }
                 Button({ onZoom(1f) }) { Text("Na šířku") }
+            }
+            Row(Modifier.fillMaxWidth().padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text("Nechat obrazovku svítit", Modifier.weight(1f), style = MaterialTheme.typography.titleMedium)
+                Switch(checked = svitit, onCheckedChange = onSvitit)
             }
         }
     }

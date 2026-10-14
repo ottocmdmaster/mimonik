@@ -3,7 +3,14 @@ package tl.knyt.mimonik
 import android.content.Context
 import android.content.SharedPreferences
 
-/** Nastavení upozornění a stahování (SharedPreferences). */
+/** Vzhled seznamu čísel: velikost písma a výška řádku. */
+enum class VelikostSeznamu(val nazev: String, val pismoSp: Int, val radekDp: Int, val teckaDp: Int) {
+    KOMPAKTNI("Kompaktní", 14, 0, 8),
+    NORMALNI("Normální", 16, 4, 10),
+    VELKE("Velké", 20, 10, 12)
+}
+
+/** Nastavení upozornění, stahování a vzhledu (SharedPreferences). */
 object Nastaveni {
     private fun p(ctx: Context): SharedPreferences =
         ctx.applicationContext.getSharedPreferences("nastaveni", Context.MODE_PRIVATE)
@@ -36,4 +43,9 @@ object Nastaveni {
     /** Minuty od půlnoci (výchozí 7:00). */
     fun tichoDo(ctx: Context) = p(ctx).getInt("tichoDo", 7 * 60)
     fun nastavTichoDo(ctx: Context, v: Int) = p(ctx).edit().putInt("tichoDo", v).apply()
+
+    fun velikostSeznamu(ctx: Context): VelikostSeznamu =
+        VelikostSeznamu.values().getOrElse(p(ctx).getInt("velikostSeznamu", 1)) { VelikostSeznamu.NORMALNI }
+
+    fun nastavVelikostSeznamu(ctx: Context, v: VelikostSeznamu) = p(ctx).edit().putInt("velikostSeznamu", v.ordinal).apply()
 }

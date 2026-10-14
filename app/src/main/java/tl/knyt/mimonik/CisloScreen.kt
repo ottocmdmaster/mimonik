@@ -68,10 +68,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -90,15 +94,32 @@ private val RUZOVA = 0xFFF48FB1.toInt()
 /** Čtečka jednoho čísla: stáhne PDF (pokud ještě není v zařízení) a zobrazí ho. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CisloScreen(cislo: Cislo, store: CislaStore, onBack: () -> Unit) {
+fun CisloScreen(
+    cislo: Cislo,
+    store: CislaStore,
+    onBack: () -> Unit,
+    pocatecniStrana: Int? = null,
+    hledej: String? = null
+) {
+    val ctx = LocalContext.current
     var soubor by remember { mutableStateOf<File?>(null) }
     var selhalo by remember { mutableStateOf(false) }
+    var zamava by remember { mutableStateOf(false) }
     var pokus by remember { mutableIntStateOf(0) }
+    val varianta = remember(pokus) { nahodnaVarianta() }
 
     LaunchedEffect(cislo.id, pokus) {
         selhalo = false
+        val uBylo = CislaStore.souborPDF(ctx, cislo).exists()
         try {
-            soubor = store.pdf(cislo)
+            val f = store.pdf(cislo)
+            // mimoň zamává jen když se číslo opravdu stahovalo; už stažené se otevře hned
+            if (!uBylo) {
+                zamava = true
+                delay(800)
+                zamava = false
+            }
+            soubor = f
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
@@ -108,7 +129,7 @@ fun CisloScreen(cislo: Cislo, store: CislaStore, onBack: () -> Unit) {
 
     val f = soubor
     if (f != null) {
-        Ctecka(cislo, f, onBack)
+        Ctecka(cislo, f, onBack, pocatecniStrana, hledej)
         return
     }
     Scaffold(topBar = {
@@ -125,8 +146,11 @@ fun CisloScreen(cislo: Cislo, store: CislaStore, onBack: () -> Unit) {
             if (selhalo) {
                 Text("Číslo se nepodařilo stáhnout.")
                 Button({ pokus++ }, Modifier.padding(top = 12.dp)) { Text("Zkusit znovu") }
+            } else if (zamava) {
+                MimonZamava(varianta = varianta)
+                Text("Hotovo!")
             } else {
-                MimonChodi()
+                MimonChodi(varianta = varianta)
                 Text("Stahuji číslo…")
             }
         }
@@ -137,7 +161,7 @@ private data class DialogPoznamky(val anotace: Anotace?, val strana: Int, val x:
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun Ctecka(cislo: Cislo, soubor: File, onBack: () -> Unit) {
+private fun Ctecka(cislo: Cislo, soubor: File, onBack: () -> Unit, pocatecniStrana: Int?, hledejNa: String?) {
     val ctx = LocalContext.current
     val scope = rememberCoroutineScope()
     val id = cislo.id
@@ -159,6 +183,8 @@ private fun Ctecka(cislo: Cislo, soubor: File, onBack: () -> Unit) {
     var menu by remember { mutableStateOf(false) }
     var sheetZalozky by remember { mutableStateOf(false) }
     var sheetZobrazeni by remember { mutableStateOf(false) }
+    var sheetNahledy by remember { mutableStateOf(false) }
+    var svitit by remember { mutableStateOf(Stav.svitit(ctx)) }
     var dialog by remember { mutableStateOf<DialogPoznamky?>(null) }
     var smazZvyrazneni by remember { mutableStateOf<Anotace?>(null) }
 
@@ -188,23 +214,60 @@ private fun Ctecka(cislo: Cislo, soubor: File, onBack: () -> Unit) {
     }
     LaunchedEffect(zoom) { Stav.ulozZoom(ctx, zoom) }
 
+    // obrazovka při čtení nezhasíná (jde vypnout v panelu Zobrazení)
+    DisposableEffect(svitit) {
+        if (svitit) okno?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        onDispose { okno?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON) }
+    }
+
+    // doba čtení: počítá se, jen dokud je appka vidět
+    val vlastnik = LocalLifecycleOwner.current
+    DisposableEffect(vlastnik) {
+        var start = if (vlastnik.lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) System.currentTimeMillis() else 0L
+        fun uloz() {
+            if (start > 0) Stav.pridejDobuCteni(ctx, id, System.currentTimeMillis() - start)
+            start = 0
+        }
+        val pozorovatel = LifecycleEventObserver { _, udalost ->
+            if (udalost == Lifecycle.Event.ON_START) { if (start == 0L) start = System.currentTimeMillis() }
+            else if (udalost == Lifecycle.Event.ON_STOP) uloz()
+        }
+        vlastnik.lifecycle.addObserver(pozorovatel)
+        onDispose { vlastnik.lifecycle.removeObserver(pozorovatel); uloz() }
+    }
+
     // obnovení pozice, označení za přečtené, ukládání pozice
     LaunchedEffect(stranky) {
         val s = stranky ?: return@LaunchedEffect
-        Stav.pozice(ctx, id)?.let { listState.scrollToItem(it.coerceIn(0, s.pocet - 1)) }
+        (pocatecniStrana ?: Stav.pozice(ctx, id))?.let { listState.scrollToItem(it.coerceIn(0, s.pocet - 1)) }
         Stav.oznacPrectene(ctx, id)
-        snapshotFlow { listState.firstVisibleItemIndex }.collect { Stav.ulozPozici(ctx, id, it) }
+        Stav.nastavPosledniOtevrene(ctx, id)
+        Stav.zaznamenejOtevreni(ctx, id)
+        snapshotFlow { listState.firstVisibleItemIndex }.collect {
+            Stav.ulozPozici(ctx, id, it)
+            Stav.zaznamenejStranu(ctx, id, it)
+        }
     }
 
-    fun hledej() {
+    fun hledej(prednostniStrana: Int? = null) {
         if (dotaz.isBlank()) return
         scope.launch {
             hledaSe = true
             nalezy = try { hledani.najdi(dotaz) } catch (e: Exception) { emptyList() }
             hledaSe = false
             hledano = true
-            aktNalez = 0
-            nalezy.firstOrNull()?.let { listState.scrollToItem(it.strana) }
+            // při otevření z hledání v číslech začni nálezem na dané straně
+            aktNalez = prednostniStrana?.let { st -> nalezy.indexOfFirst { it.strana == st } }?.takeIf { it >= 0 } ?: 0
+            nalezy.getOrNull(aktNalez)?.let { listState.scrollToItem(it.strana) }
+        }
+    }
+
+    // otevřeno z hledání napříč čísly: předvyplň a spusť hledání, ať je slovo zvýrazněné
+    LaunchedEffect(stranky) {
+        if (stranky != null && !hledejNa.isNullOrBlank()) {
+            dotaz = hledejNa
+            hledaniAktivni = true
+            hledej(pocatecniStrana)
         }
     }
 
@@ -266,6 +329,10 @@ private fun Ctecka(cislo: Cislo, soubor: File, onBack: () -> Unit) {
                         Box {
                             IconButton({ menu = true }) { Icon(Icons.Default.MoreVert, "Nabídka") }
                             DropdownMenu(menu, { menu = false }) {
+                                DropdownMenuItem(
+                                    text = { Text("Náhledy stran") },
+                                    onClick = { menu = false; sheetNahledy = true }
+                                )
                                 val jeZal = aktualniStrana in zalozky
                                 DropdownMenuItem(
                                     text = { Text(if (jeZal) "Odebrat záložku (str. ${aktualniStrana + 1})" else "Přidat záložku (str. ${aktualniStrana + 1})") },
@@ -321,8 +388,20 @@ private fun Ctecka(cislo: Cislo, soubor: File, onBack: () -> Unit) {
                 ) {
                     val zaklad = maxWidth
                     val sirka = zaklad * zoom
+                    val hScroll = rememberScrollState()
+                    fun dalsiStrana() {
+                        scope.launch { listState.animateScrollToItem((listState.firstVisibleItemIndex + 1).coerceAtMost(s.pocet - 1)) }
+                    }
+                    fun predchoziStrana() {
+                        scope.launch {
+                            val i = listState.firstVisibleItemIndex
+                            val cil = if (listState.firstVisibleItemScrollOffset > 20) i else i - 1
+                            listState.animateScrollToItem(cil.coerceAtLeast(0))
+                        }
+                    }
+                    val sirkaViewportuPx = constraints.maxWidth.toFloat()
                     val nalezyPoStranach = remember(nalezy) { nalezy.groupBy { it.strana } }
-                    Box(Modifier.fillMaxSize().horizontalScroll(rememberScrollState())) {
+                    Box(Modifier.fillMaxSize().horizontalScroll(hScroll)) {
                         LazyColumn(
                             state = listState,
                             modifier = Modifier.width(sirka).fillMaxHeight(),
@@ -346,6 +425,17 @@ private fun Ctecka(cislo: Cislo, soubor: File, onBack: () -> Unit) {
                                     onKlepnutiNaAnotaci = { a ->
                                         if (a.typ == Anotace.POZNAMKA) dialog = DialogPoznamky(a, a.strana, a.x, a.y)
                                         else smazZvyrazneni = a
+                                    },
+                                    // dvojklepnutí: na šířku <-> 200 %
+                                    onDvojklik = { zoom = if (zoom < 1.5f) 2f else 1f },
+                                    // klepnutí na levý/pravý okraj obrazovky = předchozí/další strana
+                                    onVolnyKlepnuti = { zlomek ->
+                                        val x = zlomek * sirkaViewportuPx * zoom - hScroll.value
+                                        val vViewportu = x / sirkaViewportuPx
+                                        when {
+                                            vViewportu < 0.2f -> predchoziStrana()
+                                            vViewportu > 0.8f -> dalsiStrana()
+                                        }
                                     }
                                 )
                             }
@@ -366,7 +456,15 @@ private fun Ctecka(cislo: Cislo, soubor: File, onBack: () -> Unit) {
         rezim = rezim, onRezim = { rezim = it; Stav.ulozRezim(ctx, it) },
         jas = jas, onJas = { jas = it },
         zoom = zoom, onZoom = { zoom = it },
+        svitit = svitit, onSvitit = { svitit = it; Stav.ulozSvitit(ctx, it) },
         onZavri = { sheetZobrazeni = false }
+    )
+
+    val s2 = stranky
+    if (sheetNahledy && s2 != null) NahledySheet(
+        stranky = s2, aktualni = aktualniStrana, rezim = rezim,
+        onJdi = { strana -> scope.launch { listState.scrollToItem(strana) } },
+        onZavri = { sheetNahledy = false }
     )
 
     if (sheetZalozky) ZalozkyListSheet(

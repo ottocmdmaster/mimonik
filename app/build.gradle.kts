@@ -31,6 +31,9 @@ android {
     buildFeatures {
         compose = true
     }
+    testOptions {
+        unitTests.isReturnDefaultValues = true
+    }
 }
 
 dependencies {
@@ -46,4 +49,8 @@ dependencies {
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.work.runtime.ktx)
     implementation("com.tom-roush:pdfbox-android:2.0.27.0")
+
+    testImplementation("junit:junit:4.13.2")
+    // org.json v android.jar je jen stub, pro unit testy na JVM je potřeba skutečná implementace
+    testImplementation("org.json:json:20231013")
 }

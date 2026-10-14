@@ -88,7 +88,7 @@ class CislaStore private constructor(ctx: Context) {
 
         fun souborPDF(ctx: Context, c: Cislo) = File(ctx.filesDir, "pdf/${c.id}.pdf")
 
-        private fun parsuj(text: String): List<Cislo> {
+        internal fun parsuj(text: String): List<Cislo> {
             val pole = JSONArray(text)
             return (0 until pole.length()).map {
                 val o = pole.getJSONObject(it)
@@ -146,8 +146,14 @@ class CislaStore private constructor(ctx: Context) {
             val cil = souborPDF(ctx, cislo)
             if (cil.exists()) return@withContext cil
             if (jenWifi && jeNaMobilnichDatech(ctx)) throw SpojeniChyba()
+            stahniSouborPDF(cil, cislo, Config.adresy)
+        }
+
+        /** Jádro stahování bez Contextu (kvůli testům): zkusí adresy popořadě, existující soubor nepřepíše. */
+        internal suspend fun stahniSouborPDF(cil: File, cislo: Cislo, adresy: List<String>): File = withContext(Dispatchers.IO) {
+            if (cil.exists()) return@withContext cil
             cil.parentFile?.mkdirs()
-            for (adresa in Config.adresy) {
+            for (adresa in adresy) {
                 val tmp = File(cil.parentFile, "${cislo.id}.pdf.part")
                 try {
                     val c = URL(adresa + cislo.pdf).openConnection() as HttpURLConnection

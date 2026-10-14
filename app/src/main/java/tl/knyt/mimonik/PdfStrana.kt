@@ -13,6 +13,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -69,8 +70,13 @@ fun StranaPdf(
     nastroj: Nastroj,
     onZvyrazneni: (NRect) -> Unit,
     onPoznamka: (x: Float, y: Float) -> Unit,
-    onKlepnutiNaAnotaci: (Anotace) -> Unit
+    onKlepnutiNaAnotaci: (Anotace) -> Unit,
+    onDvojklik: () -> Unit = {},
+    /** Klepnutí do prázdného místa; parametr je vodorovná pozice v rámci stránky (0..1). */
+    onVolnyKlepnuti: (Float) -> Unit = {}
 ) {
+    val dvojklik by rememberUpdatedState(onDvojklik)
+    val volnyKlepnuti by rememberUpdatedState(onVolnyKlepnuti)
     val hustota = LocalDensity.current
     val sirkaPx = with(hustota) { sirka.roundToPx() }
     // zaokrouhlení nahoru, ať se při zoomu nepřekresluje při každém pixelu
@@ -88,7 +94,7 @@ fun StranaPdf(
             .height(vyska)
             .background(Color.White)
             .pointerInput(anotace, nastroj) {
-                detectTapGestures { p ->
+                detectTapGestures(onDoubleTap = { if (nastroj == Nastroj.Nic) dvojklik() }) { p ->
                     val w = size.width.toFloat(); val h = size.height.toFloat()
                     val poznamkaSirka = 28.dp.toPx() / w
                     val zasah = anotace.firstOrNull {
@@ -99,6 +105,7 @@ fun StranaPdf(
                     when {
                         zasah != null -> onKlepnutiNaAnotaci(zasah)
                         nastroj == Nastroj.Poznamka -> onPoznamka(p.x / w, p.y / h)
+                        nastroj == Nastroj.Nic -> volnyKlepnuti(p.x / w)
                     }
                 }
             }
