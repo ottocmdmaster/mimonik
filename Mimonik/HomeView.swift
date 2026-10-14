@@ -4,11 +4,27 @@ struct HomeView: View {
     @EnvironmentObject var store: CislaStore
     @State private var hledani = ""
     @State private var jenOblibene = false
+    @AppStorage(Stav.klicVelikostSeznamu) private var velikost = VelikostSeznamu.normalni.rawValue
     @State private var zmena = 0  // změna přečtených/oblíbených čísel → překreslení seznamu
 
     var body: some View {
         NavigationView {
             List {
+                if let rozecteno = rozectene {
+                    Section {
+                        NavigationLink(destination: CisloView(cislo: rozecteno)) {
+                            HStack(spacing: 14) {
+                                Image(systemName: "book.fill").font(.title).foregroundColor(.accentColor)
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("Pokračovat ve čtení").font(.headline)
+                                    Text(popisPozice(rozecteno)).foregroundColor(.secondary)
+                                }
+                            }
+                            .padding(.vertical, 10)
+                        }
+                    }
+                }
+
                 if let nejnovejsi = store.cisla.first {
                     Section {
                         NavigationLink(destination: CisloView(cislo: nejnovejsi)) {
@@ -31,6 +47,7 @@ struct HomeView: View {
                                     Circle().fill(Color.accentColor).frame(width: 9, height: 9)
                                 }
                                 Text(cislo.nazev)
+                                    .font(styl.pismo)
                                     .fontWeight(Stav.jePrectene(cislo.id) ? .regular : .semibold)
                                 Spacer()
                                 if Stav.jePoblibene(cislo.id) {
@@ -40,13 +57,17 @@ struct HomeView: View {
                                     Image(systemName: "arrow.down.circle.fill").foregroundColor(.secondary)
                                 }
                             }
+                            .padding(.vertical, styl.odsazeni)
                         }
                     }
                 }
 
                 Section {
+                    NavigationLink(destination: StatistikyView()) {
+                        Label("Statistiky čtení", systemImage: "chart.bar")
+                    }
                     NavigationLink(destination: NastaveniView()) {
-                        Label("Nastavení upozornění", systemImage: "bell")
+                        Label("Nastavení", systemImage: "gearshape")
                     }
                 }
             }
@@ -54,6 +75,9 @@ struct HomeView: View {
             .refreshable { await store.obnov() }
             .searchable(text: $hledani, prompt: "Hledat číslo")
             .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    NavigationLink(destination: HledaniView()) { Image(systemName: "magnifyingglass") }
+                }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button { jenOblibene.toggle() } label: {
                         Image(systemName: jenOblibene ? "star.fill" : "star")
@@ -70,6 +94,20 @@ struct HomeView: View {
             await store.obnov()
             if Notifier.zapnuto { Notifier.oznacJakoVidene(store.cisla) }
         }
+    }
+
+    private var styl: VelikostSeznamu { VelikostSeznamu(rawValue: velikost) ?? .normalni }
+
+    /// Poslední otevřené číslo, pokud v něm čtenář někam došel.
+    private var rozectene: Cislo? {
+        _ = zmena
+        guard let id = Stav.posledniOtevrene else { return nil }
+        return store.cisla.first { $0.id == id }
+    }
+
+    private func popisPozice(_ c: Cislo) -> String {
+        guard let s = Stav.pozice(c.id) else { return c.nazev }
+        return "\(c.nazev), strana \(s + 1)"
     }
 
     private var zobrazena: [Cislo] {

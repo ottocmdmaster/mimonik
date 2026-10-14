@@ -58,10 +58,10 @@ final class CislaStore: ObservableObject {
 
     /// Vrátí lokální PDF; když tam není, stáhne ho. Už stažený soubor nikdy nepřepíše.
     /// `jenWifi` zakáže mobilní data (i datově zpoplatněné sítě, např. hotspot).
-    nonisolated static func stahniPDF(_ cislo: Cislo, jenWifi: Bool = false) async throws -> URL {
+    nonisolated static func stahniPDF(_ cislo: Cislo, jenWifi: Bool = false,
+                                      konfigurace: URLSessionConfiguration = .default) async throws -> URL {
         let cil = souborPDF(cislo)
         if cil.exists { return cil }
-        let konfigurace = URLSessionConfiguration.default
         konfigurace.timeoutIntervalForRequest = 30
         if jenWifi {
             konfigurace.allowsCellularAccess = false

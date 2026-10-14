@@ -37,7 +37,10 @@ final class PDFOvladac: ObservableObject {
     @Published var aktualni = 0
     private var vysledky: [PDFSelection] = []
 
-    func hledej(_ text: String) {
+    var dokument: PDFDocument? { pdfView?.document }
+
+    /// Hledá v dokumentu; s `naStrane` skočí na první nález na dané straně (jinak na první nález).
+    func hledej(_ text: String, naStrane: Int? = nil) {
         guard let pdfView = pdfView, let dokument = pdfView.document else { return }
         let hledany = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !hledany.isEmpty else { zrus(); return }
@@ -46,6 +49,10 @@ final class PDFOvladac: ObservableObject {
         pdfView.highlightedSelections = vysledky
         nalezeno = vysledky.count
         aktualni = 0
+        if let strana = naStrane,
+           let i = vysledky.firstIndex(where: { v in v.pages.contains { dokument.index(for: $0) == strana } }) {
+            aktualni = i
+        }
         ukaz()
     }
 
@@ -81,6 +88,26 @@ final class PDFOvladac: ObservableObject {
     func naSirku() {
         pdfView?.autoScales = true
         UserDefaults.standard.removeObject(forKey: Stav.klicZoom)
+    }
+
+    /// Dvojklepnutí: přepíná mezi šířkou stránky a 200 %.
+    func prepniZoom() {
+        guard let v = pdfView else { return }
+        if v.autoScales {
+            v.autoScales = false
+            v.scaleFactor = min(max(v.scaleFactorForSizeToFit * 2, v.minScaleFactor), v.maxScaleFactor)
+            ulozZoom()
+        } else {
+            naSirku()
+        }
+    }
+
+    /// Klepnutí na okraj: předchozí / další stránka.
+    func listuj(_ krok: Int) {
+        guard let v = pdfView, let doc = v.document, let page = v.currentPage else { return }
+        let i = doc.index(for: page) + krok
+        guard i >= 0, i < doc.pageCount, let cil = doc.page(at: i) else { return }
+        v.go(to: cil)
     }
 
     fileprivate func ulozZoom() {
@@ -209,6 +236,7 @@ struct PDFViewerView: UIViewRepresentable {
     let cisloID: String
     let rezim: RezimCteni
     let ovladac: PDFOvladac
+    var pocatecniStrana: Int? = nil
 
     func makeCoordinator() -> Coordinator { Coordinator(cisloID: cisloID, ovladac: ovladac) }
 
@@ -245,7 +273,7 @@ struct PDFViewerView: UIViewRepresentable {
         ovladac.soubor = url
 
         // obnovení strany, kde čtenář skončil
-        if let strana = Stav.pozice(cisloID), let doc = view.document, strana < doc.pageCount,
+        if let strana = pocatecniStrana ?? Stav.pozice(cisloID), let doc = view.document, strana < doc.pageCount,
            let page = doc.page(at: strana) {
             DispatchQueue.main.async { view.go(to: page) }
         }
@@ -259,6 +287,11 @@ struct PDFViewerView: UIViewRepresentable {
         }
         let klepnuti = UITapGestureRecognizer(target: c, action: #selector(Coordinator.klepnuti(_:)))
         klepnuti.delegate = c
+        let dvojklepnuti = UITapGestureRecognizer(target: c, action: #selector(Coordinator.dvojklepnuti(_:)))
+        dvojklepnuti.numberOfTapsRequired = 2
+        dvojklepnuti.delegate = c
+        klepnuti.require(toFail: dvojklepnuti)
+        view.addGestureRecognizer(dvojklepnuti)
         view.addGestureRecognizer(klepnuti)
         NotificationCenter.default.addObserver(c, selector: #selector(Coordinator.zmenaZoomu),
                                                name: .PDFViewScaleChanged, object: view)
@@ -326,7 +359,16 @@ struct PDFViewerView: UIViewRepresentable {
             } else if let a = page.annotation(at: bod),
                       (a.type ?? "").replacingOccurrences(of: "/", with: "") == "Text" {
                 ovladac.naNota?(NotaCil(strana: page, bod: bod, anotace: a))
+            } else if v.currentSelection == nil {
+                // okraje (~20 % šířky) listují; označený text klepnutí jen zruší výběr
+                let podil = p.x / max(v.bounds.width, 1)
+                if podil < 0.2 { ovladac.listuj(-1) } else if podil > 0.8 { ovladac.listuj(1) }
             }
+        }
+
+        @objc func dvojklepnuti(_ g: UITapGestureRecognizer) {
+            guard !ovladac.rezimPoznamky else { return }
+            ovladac.prepniZoom()
         }
 
         func gestureRecognizer(_ g: UIGestureRecognizer,

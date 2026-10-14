@@ -4,6 +4,9 @@ import SwiftUI
 struct CisloView: View {
     @EnvironmentObject var store: CislaStore
     let cislo: Cislo
+    /// Z hledání napříč čísly: otevřít na této straně a zvýraznit hledané slovo.
+    var pocatecniStrana: Int? = nil
+    var hledanyText: String? = nil
     @State private var soubor: URL?
     @State private var selhalo = false
     @State private var hledani = ""
@@ -15,13 +18,19 @@ struct CisloView: View {
     @State private var puvodniJas: CGFloat?
     @State private var jasZeSystemu = false
     @State private var jas = Double(UIScreen.main.brightness)
+    @State private var svitit = Stav.nechatSvitit
+    @State private var varianta = MimonVarianta.nahodna()
+    @State private var zamava = false
+    @State private var zaznam = ZaznamCteni()
 
     private enum ActiveSheet: Identifiable {
         case seznam
+        case nahledy
         case nota(NotaCil)
         var id: String {
             switch self {
             case .seznam: return "seznam"
+            case .nahledy: return "nahledy"
             case .nota(let n): return n.id.uuidString
             }
         }
@@ -31,7 +40,7 @@ struct CisloView: View {
     var body: some View {
         Group {
             if let soubor = soubor {
-                PDFViewerView(url: soubor, cisloID: cislo.id, rezim: rezim, ovladac: ovladac)
+                PDFViewerView(url: soubor, cisloID: cislo.id, rezim: rezim, ovladac: ovladac, pocatecniStrana: pocatecniStrana)
                     .ignoresSafeArea(edges: .bottom)
                     .overlay(alignment: .bottom) {
                         VStack(spacing: 8) {
@@ -43,7 +52,7 @@ struct CisloView: View {
                                     .cornerRadius(10)
                             }
                             if zobrazeni {
-                                ZobrazeniPanel(rezim: $rezim, jas: $jas, ovladac: ovladac, jasSystem: jasPodleSystemu)
+                                ZobrazeniPanel(rezim: $rezim, jas: $jas, svitit: $svitit, ovladac: ovladac, jasSystem: jasPodleSystemu)
                             }
                         }
                         .padding(.bottom, 8)
@@ -55,8 +64,8 @@ struct CisloView: View {
                 }
             } else {
                 VStack(spacing: 12) {
-                    MimonChodi()
-                    Text("Stahuji číslo…")
+                    MimonChodi(varianta: varianta, zamava: zamava)
+                    Text(zamava ? "Hotovo!" : "Stahuji číslo…")
                 }
             }
         }
@@ -75,6 +84,7 @@ struct CisloView: View {
                     Button { ovladac.predchozi() } label: { Image(systemName: "chevron.up") }
                     Button { ovladac.dalsi() } label: { Image(systemName: "chevron.down") }
                 }
+                Button { aktivniSheet = .nahledy } label: { Image(systemName: "square.grid.2x2") }
                 Button { zobrazeni.toggle() } label: { Image(systemName: "textformat.size") }
                 Menu {
                     Button { ovladac.zvyrazni(.yellow) } label: { Label("Zvýraznit žlutě", systemImage: "highlighter") }
@@ -113,6 +123,9 @@ struct CisloView: View {
             switch sheet {
             case .seznam:
                 ZalozkyView(ovladac: ovladac, cisloID: cislo.id) { aktivniSheet = nil }
+            case .nahledy:
+                NahledyView(dokument: ovladac.dokument, aktualni: ovladac.strana,
+                            vybrat: { ovladac.jdiNaStranu($0) }, zavrit: { aktivniSheet = nil })
             case .nota(let cil):
                 NotaEditor(cil: cil, uloz: { text in
                     ovladac.ulozPoznamku(cil, text: text)
@@ -124,6 +137,10 @@ struct CisloView: View {
             oblibene = Stav.jePoblibene(cislo.id)
             zalozky = Stav.zalozky(cislo.id)
             Stav.oznacPrectene(cislo.id)
+            Stav.posledniOtevrene = cislo.id
+            Stav.zaznamenejOtevreni(cislo.id)
+            zaznam.start()
+            UIApplication.shared.isIdleTimerDisabled = svitit
             ovladac.naNota = { aktivniSheet = .nota($0) }
             if puvodniJas == nil {
                 puvodniJas = UIScreen.main.brightness
@@ -131,7 +148,19 @@ struct CisloView: View {
                 if let u = ulozeny { jas = u; UIScreen.main.brightness = CGFloat(u) }
             }
         }
+        .onChange(of: svitit) { novy in
+            Stav.nechatSvitit = novy
+            UIApplication.shared.isIdleTimerDisabled = novy
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.willResignActiveNotification)) { _ in
+            Stav.pridejDobu(cislo.id, sekundy: zaznam.pauza())
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
+            zaznam.start()
+        }
         .onDisappear {
+            Stav.pridejDobu(cislo.id, sekundy: zaznam.pauza())
+            UIApplication.shared.isIdleTimerDisabled = false
             if let p = puvodniJas { UIScreen.main.brightness = p; puvodniJas = nil }
         }
         .task { await nacti() }
@@ -148,6 +177,32 @@ struct CisloView: View {
 
     private func nacti() async {
         selhalo = false
-        do { soubor = try await store.pdf(cislo) } catch { selhalo = true }
+        let uzBylo = store.stazena.contains(cislo.id)
+        do {
+            let url = try await store.pdf(cislo)
+            if !uzBylo {
+                // skutečné stahování skončilo: mimoň zamává, než se otevře PDF
+                zamava = true
+                try? await Task.sleep(nanoseconds: 800_000_000)
+            }
+            soubor = url
+            if let text = hledanyText, !text.isEmpty {
+                try? await Task.sleep(nanoseconds: 300_000_000)
+                hledani = text
+                ovladac.hledej(text, naStrane: pocatecniStrana)
+            }
+        } catch { selhalo = true }
+    }
+}
+
+/// Měří dobu, po kterou je čtečka otevřená a aplikace aktivní.
+struct ZaznamCteni {
+    private var od: Date?
+    mutating func start() { od = Date() }
+    /// Vrátí dobu od posledního `start` a zastaví měření.
+    mutating func pauza() -> Double {
+        defer { od = nil }
+        guard let od = od else { return 0 }
+        return Date().timeIntervalSince(od)
     }
 }

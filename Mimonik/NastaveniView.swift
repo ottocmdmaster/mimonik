@@ -13,9 +13,17 @@ struct NastaveniView: View {
     @State private var jenWifi = Notifier.jenWifi
     @State private var kontroluji = false
     @State private var vysledek: String?
+    @AppStorage(Stav.klicVelikostSeznamu) private var velikost = VelikostSeznamu.normalni.rawValue
 
     var body: some View {
         Form {
+            Section(header: Text("Vzhled seznamu"), footer: Text("Velikost písma a odsazení řádků v seznamu čísel.")) {
+                Picker("Velikost", selection: $velikost) {
+                    ForEach(VelikostSeznamu.allCases) { Text($0.nazev).tag($0.rawValue) }
+                }
+                .pickerStyle(.segmented)
+            }
+
             Section(footer: Text("Appka občas v pozadí zkontroluje, jestli nevyšlo nové číslo. Kdy přesně, určuje iPhone, takže upozornění může přijít s odstupem hodin.")) {
                 Toggle("Upozornit na nové číslo", isOn: Binding(
                     get: { oznameni },
@@ -76,7 +84,7 @@ struct NastaveniView: View {
                 .disabled(kontroluji)
             }
         }
-        .navigationTitle("Upozornění")
+        .navigationTitle("Nastavení")
         .navigationBarTitleDisplayMode(.inline)
         .task {
             let povoleno = await Notifier.povoleno()

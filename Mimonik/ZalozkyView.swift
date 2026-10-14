@@ -102,6 +102,7 @@ struct NotaEditor: View {
 struct ZobrazeniPanel: View {
     @Binding var rezim: RezimCteni
     @Binding var jas: Double
+    @Binding var svitit: Bool
     let ovladac: PDFOvladac
     let jasSystem: () -> Void
 
@@ -118,6 +119,8 @@ struct ZobrazeniPanel: View {
                 Image(systemName: "sun.max")
                 Button("Systém", action: jasSystem).font(.footnote)
             }
+
+            Toggle("Nezhasínat obrazovku", isOn: $svitit)
 
             HStack(spacing: 12) {
                 Button { ovladac.oddalit() } label: { Image(systemName: "minus.magnifyingglass") }
