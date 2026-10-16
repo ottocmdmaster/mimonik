@@ -3,7 +3,7 @@ import Foundation
 /// Stav čtení (přečtené, pozice, oblíbené) uložený v UserDefaults.
 enum Stav {
     /// Pošle se po každé změně, aby se překreslily seznamy.
-    static let zmena = Notification.Name("tl.knyt.Mimonik.stavZmena")
+    static let zmena = Notification.Name("cz.mimonik.stavZmena")
 
     private static let klicPrectena = "prectenaCisla"
     private static let klicOblibena = "oblibenaCisla"
@@ -19,6 +19,14 @@ enum Stav {
         var s = d.stringArray(forKey: klicPrectena) ?? []
         guard !s.contains(id) else { return }
         s.append(id)
+        d.set(s, forKey: klicPrectena)
+        NotificationCenter.default.post(name: zmena, object: nil)
+    }
+
+    static func oznacNeprectene(_ id: String) {
+        var s = d.stringArray(forKey: klicPrectena) ?? []
+        guard s.contains(id) else { return }
+        s.removeAll { $0 == id }
         d.set(s, forKey: klicPrectena)
         NotificationCenter.default.post(name: zmena, object: nil)
     }

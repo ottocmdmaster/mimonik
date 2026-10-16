@@ -59,6 +59,21 @@ struct HomeView: View {
                             }
                             .padding(.vertical, styl.odsazeni)
                         }
+                        .swipeActions(edge: .leading) {
+                            if Stav.jePrectene(cislo.id) {
+                                Button { prepniPrectene(cislo) } label: {
+                                    Label("Nepřečtené", systemImage: "circle.fill")
+                                }
+                                .tint(.accentColor)
+                            }
+                        }
+                        .contextMenu {
+                            if Stav.jePrectene(cislo.id) {
+                                Button { prepniPrectene(cislo) } label: {
+                                    Label("Označit jako nepřečtené", systemImage: "circle.fill")
+                                }
+                            }
+                        }
                     }
                 }
 
@@ -94,6 +109,11 @@ struct HomeView: View {
             await store.obnov()
             if Notifier.zapnuto { Notifier.oznacJakoVidene(store.cisla) }
         }
+    }
+
+    private func prepniPrectene(_ cislo: Cislo) {
+        Stav.oznacNeprectene(cislo.id)
+        Notifier.aktualizujOdznak(store.cisla)
     }
 
     private var styl: VelikostSeznamu { VelikostSeznamu(rawValue: velikost) ?? .normalni }

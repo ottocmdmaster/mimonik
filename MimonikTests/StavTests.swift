@@ -3,7 +3,7 @@ import XCTest
 
 final class StavTests: XCTestCase {
     private var puvodni: UserDefaults!
-    private let sada = "tl.knyt.MimonikTests.stav"
+    private let sada = "cz.mimonik.Tests.stav"
 
     override func setUp() {
         super.setUp()
@@ -20,6 +20,18 @@ final class StavTests: XCTestCase {
 
     private func cisla(_ n: Int) -> [Cislo] {
         (1...n).map { Cislo(id: "c\($0)", nazev: "Číslo \($0)", pdf: "c\($0).pdf", poradi: $0) }
+    }
+
+    func testOznacitJakoNeprectene() {
+        let c = cisla(2)
+        Stav.oznacPrectene("c1")
+        Stav.oznacPrectene("c2")
+        XCTAssertEqual(Stav.pocetNeprectenych(c), 0)
+        Stav.oznacNeprectene("c1")
+        Stav.oznacNeprectene("c1")
+        XCTAssertFalse(Stav.jePrectene("c1"))
+        XCTAssertTrue(Stav.jePrectene("c2"))
+        XCTAssertEqual(Stav.pocetNeprectenych(c), 1)
     }
 
     func testPrectenaCislaSePocitajiJakoNeprectena() {

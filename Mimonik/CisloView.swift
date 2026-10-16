@@ -109,6 +109,10 @@ struct CisloView: View {
                         Label(oblibene ? "Odebrat z oblíbených" : "Přidat do oblíbených",
                               systemImage: oblibene ? "star.fill" : "star")
                     }
+                    Button {
+                        Stav.oznacNeprectene(cislo.id)
+                        Notifier.aktualizujOdznak(store.cisla)
+                    } label: { Label("Označit jako nepřečtené", systemImage: "circle.fill") }
                 } label: { Image(systemName: "ellipsis.circle") }
             }
         }

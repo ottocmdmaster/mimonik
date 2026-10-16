@@ -7,7 +7,7 @@ import UserNotifications
 /// sama v pozadí občas zkontroluje web a pošle místní upozornění.
 final class Notifier: NSObject, UNUserNotificationCenterDelegate {
     static let shared = Notifier()
-    static let taskID = "tl.knyt.Mimonik.refresh"
+    static let taskID = "cz.mimonik.refresh"
     private static let klicZapnuto = "oznameniZapnuta"
     private static let klicPosledni = "posledniZnameCislo"
     private static let klicTicho = "tichoZapnuto"
