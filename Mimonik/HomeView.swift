@@ -103,8 +103,14 @@ struct HomeView: View {
             .overlay {
                 if store.cisla.isEmpty && store.nacita { ProgressView() }
             }
+
+            // Na iPadu je to druhý sloupec (seznam | čtečka); na iPhonu se nezobrazí.
+            VStack(spacing: 12) {
+                Image(systemName: "book.closed").font(.system(size: 56)).foregroundColor(.secondary)
+                Text("Vyber číslo").font(.title2).foregroundColor(.secondary)
+            }
         }
-        .navigationViewStyle(.stack)
+        .modifier(StylNavigace())
         .task {
             await store.obnov()
             if Notifier.zapnuto { Notifier.oznacJakoVidene(store.cisla) }
@@ -140,5 +146,16 @@ struct HomeView: View {
 
     private var chybaText: some View {
         Group { if let chyba = store.chyba { Text(chyba) } }
+    }
+}
+
+/// iPhone = jeden sloupec na celou obrazovku, iPad = seznam čísel vlevo a čtečka vpravo.
+private struct StylNavigace: ViewModifier {
+    @ViewBuilder func body(content: Content) -> some View {
+        if UIDevice.current.userInterfaceIdiom == .pad {
+            content.navigationViewStyle(.automatic)
+        } else {
+            content.navigationViewStyle(.stack)
+        }
     }
 }
