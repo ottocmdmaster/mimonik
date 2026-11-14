@@ -26,11 +26,13 @@ struct CisloView: View {
     private enum ActiveSheet: Identifiable {
         case seznam
         case nahledy
+        case sdileni
         case nota(NotaCil)
         var id: String {
             switch self {
             case .seznam: return "seznam"
             case .nahledy: return "nahledy"
+            case .sdileni: return "sdileni"
             case .nota(let n): return n.id.uuidString
             }
         }
@@ -102,6 +104,7 @@ struct CisloView: View {
                               systemImage: je ? "bookmark.slash" : "bookmark")
                     }
                     Button { aktivniSheet = .seznam } label: { Label("Záložky a poznámky", systemImage: "list.bullet") }
+                    Button { aktivniSheet = .sdileni } label: { Label("Sdílet odkaz na číslo", systemImage: "square.and.arrow.up") }
                     Button {
                         Stav.prepniOblibene(cislo.id)
                         oblibene = Stav.jePoblibene(cislo.id)
@@ -130,6 +133,8 @@ struct CisloView: View {
             case .nahledy:
                 NahledyView(dokument: ovladac.dokument, aktualni: ovladac.strana,
                             vybrat: { ovladac.jdiNaStranu($0) }, zavrit: { aktivniSheet = nil })
+            case .sdileni:
+                SdileniSheet(cislo: cislo)
             case .nota(let cil):
                 NotaEditor(cil: cil, uloz: { text in
                     ovladac.ulozPoznamku(cil, text: text)

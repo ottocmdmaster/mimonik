@@ -3,7 +3,8 @@ import SwiftUI
 struct HomeView: View {
     @EnvironmentObject var store: CislaStore
     @State private var hledani = ""
-    @State private var jenOblibene = false
+    @State private var filtr = FiltrSeznamu.vse
+    @State private var sdilet: Cislo?
     @AppStorage(Stav.klicVelikostSeznamu) private var velikost = VelikostSeznamu.normalni.rawValue
     @State private var zmena = 0  // změna přečtených/oblíbených čísel → překreslení seznamu
 
@@ -39,8 +40,17 @@ struct HomeView: View {
                     }
                 }
 
-                Section(header: Text(jenOblibene ? "Oblíbená čísla" : "Všechna čísla"), footer: chybaText) {
-                    ForEach(zobrazena) { cislo in
+                if let chyba = store.chyba {
+                    Section { Text(chyba).font(.footnote).foregroundColor(.secondary) }
+                }
+
+                if zobrazena.isEmpty && !store.cisla.isEmpty {
+                    Section { Text(prazdnyText).foregroundColor(.secondary) }
+                }
+
+                ForEach(skupiny, id: \.rok) { skupina in
+                Section(header: Text(String(skupina.rok))) {
+                    ForEach(skupina.cisla) { cislo in
                         NavigationLink(destination: CisloView(cislo: cislo)) {
                             HStack {
                                 if !Stav.jePrectene(cislo.id) {
@@ -68,6 +78,9 @@ struct HomeView: View {
                             }
                         }
                         .contextMenu {
+                            Button { sdilet = cislo } label: {
+                                Label("Sdílet odkaz", systemImage: "square.and.arrow.up")
+                            }
                             if Stav.jePrectene(cislo.id) {
                                 Button { prepniPrectene(cislo) } label: {
                                     Label("Označit jako nepřečtené", systemImage: "circle.fill")
@@ -75,6 +88,7 @@ struct HomeView: View {
                             }
                         }
                     }
+                }
                 }
 
                 Section {
@@ -94,8 +108,13 @@ struct HomeView: View {
                     NavigationLink(destination: HledaniView()) { Image(systemName: "magnifyingglass") }
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button { jenOblibene.toggle() } label: {
-                        Image(systemName: jenOblibene ? "star.fill" : "star")
+                    Menu {
+                        Picker("Zobrazit", selection: $filtr) {
+                            ForEach(FiltrSeznamu.allCases) { f in Text(f.nazev).tag(f) }
+                        }
+                    } label: {
+                        Image(systemName: filtr == .vse ? "line.3.horizontal.decrease.circle"
+                                                        : "line.3.horizontal.decrease.circle.fill")
                     }
                 }
             }
@@ -111,6 +130,7 @@ struct HomeView: View {
             }
         }
         .modifier(StylNavigace())
+        .sheet(item: $sdilet) { SdileniSheet(cislo: $0) }
         .task {
             await store.obnov()
             if Notifier.zapnuto { Notifier.oznacJakoVidene(store.cisla) }
@@ -139,13 +159,33 @@ struct HomeView: View {
     private var zobrazena: [Cislo] {
         _ = zmena
         return store.cisla.filter { c in
-            (!jenOblibene || Stav.jePoblibene(c.id)) &&
+            odpovida(c, filtr) &&
             (hledani.isEmpty || c.nazev.range(of: hledani, options: [.caseInsensitive, .diacriticInsensitive]) != nil)
         }
     }
 
-    private var chybaText: some View {
-        Group { if let chyba = store.chyba { Text(chyba) } }
+    private func odpovida(_ c: Cislo, _ f: FiltrSeznamu) -> Bool {
+        switch f {
+        case .vse: return true
+        case .neprectena: return !Stav.jePrectene(c.id)
+        case .oblibena: return Stav.jePoblibene(c.id)
+        }
+    }
+
+    /// Čísla seskupená podle roku vydání, nejnovější rok nahoře.
+    private var skupiny: [(rok: Int, cisla: [Cislo])] {
+        Dictionary(grouping: zobrazena, by: { $0.rok })
+            .map { (rok: $0.key, cisla: $0.value.sorted { $0.poradi > $1.poradi }) }
+            .sorted { $0.rok > $1.rok }
+    }
+
+    private var prazdnyText: String {
+        if !hledani.isEmpty { return "Nic nenalezeno." }
+        switch filtr {
+        case .vse: return "Žádná čísla."
+        case .neprectena: return "Všechna čísla máš přečtená."
+        case .oblibena: return "Zatím nemáš žádná oblíbená čísla."
+        }
     }
 }
 
