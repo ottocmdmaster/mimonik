@@ -264,7 +264,7 @@ final class KontejnerPDF: UIView {
     }
 }
 
-/// Ořízne všechny stránky na stejný poměr stran (nejčastější v dokumentu), aby měly stejnou velikost.
+/// Doplní všechny stránky na stejný poměr stran (nejčastější v dokumentu), aby měly stejnou velikost.
 func sjednotRozmerStran(_ doc: PDFDocument) {
     var rozmery: [(PDFPage, CGRect, Bool)] = []
     var pocty: [Int: Int] = [:]
@@ -282,14 +282,16 @@ func sjednotRozmerStran(_ doc: PDFDocument) {
     let cil = CGFloat(nej.key) / 100
     for (p, b, otocena) in rozmery {
         let t = otocena ? 1 / cil : cil  // poměr v souřadnicích stránky
+        // nic se neořezává: kratší rozměr se doplní bílým okrajem na cílový poměr
         var r = b
         if b.width / b.height > t {
-            r.size.width = b.height * t
-            r.origin.x = b.midX - r.width / 2
-        } else {
             r.size.height = b.width / t
             r.origin.y = b.midY - r.height / 2
+        } else {
+            r.size.width = b.height * t
+            r.origin.x = b.midX - r.width / 2
         }
+        p.setBounds(r, for: .mediaBox)
         p.setBounds(r, for: .cropBox)
     }
 }
