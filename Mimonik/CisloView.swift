@@ -143,6 +143,8 @@ struct CisloView: View {
             // „Přečtené“ se zapíše až při odchodu: změna stavu při otevření překreslí seznam pod čtečkou
             // a SwiftUI pak čtečku zavře nebo přepíše (nepřečtená čísla nešlo otevřít).
             Stav.posledniOtevrene = cislo.id
+            // iPad: seznam je vedle čtečky (nic se nezavírá) a stará čtečka při výběru jiného čísla nemusí zmizet
+            if UIDevice.current.userInterfaceIdiom == .pad { Stav.oznacPrectene(cislo.id) }
             Stav.zaznamenejOtevreni(cislo.id)
             zaznam.start()
             UIApplication.shared.isIdleTimerDisabled = svitit
