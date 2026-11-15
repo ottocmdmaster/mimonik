@@ -231,6 +231,69 @@ struct PolozkaAnotace: Identifiable {
 }
 
 /// Zobrazí PDF ze souboru, pamatuje si stranu a umí sépiový / tmavý režim.
+/// Na iPadu na šířku zobrazí dvě strany vedle sebe, jinak jednu pod druhou.
+final class KontejnerPDF: UIView {
+    weak var pdf: PDFView?
+    /// Spustí se jednou po prvním rozložení, kdy už má PDF skutečnou velikost.
+    var poPrvnimRozlozeni: (() -> Void)?
+    private var hotovo = false
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        guard let pdf = pdf, bounds.width > 0 else { return }
+        let dvoustrana = UIDevice.current.userInterfaceIdiom == .pad && bounds.width > bounds.height
+        let cil: PDFDisplayMode = dvoustrana ? .twoUpContinuous : .singlePageContinuous
+        if pdf.displayMode != cil {
+            let strana = pdf.currentPage
+            pdf.displayMode = cil
+            pdf.displayDirection = .vertical
+            pdf.autoScales = true
+            if let strana = strana { pdf.go(to: strana) }
+        }
+        // nejmenší zoom = celá šířka stránky, aby nešlo odzoomovat do bílých okrajů
+        pdf.layoutIfNeeded()
+        let fit = pdf.scaleFactorForSizeToFit
+        if fit > 0 {
+            if abs(pdf.minScaleFactor - fit) > 0.001 { pdf.minScaleFactor = fit }
+            if pdf.scaleFactor < fit - 0.001 { pdf.scaleFactor = fit }
+        }
+        if !hotovo {
+            hotovo = true
+            poPrvnimRozlozeni?()
+        }
+    }
+}
+
+/// Ořízne všechny stránky na stejný poměr stran (nejčastější v dokumentu), aby měly stejnou velikost.
+func sjednotRozmerStran(_ doc: PDFDocument) {
+    var rozmery: [(PDFPage, CGRect, Bool)] = []
+    var pocty: [Int: Int] = [:]
+    for i in 0..<doc.pageCount {
+        guard let p = doc.page(at: i) else { continue }
+        let b = p.bounds(for: .mediaBox)
+        let otocena = p.rotation % 180 != 0
+        let w = otocena ? b.height : b.width
+        let h = otocena ? b.width : b.height
+        guard w > 0, h > 0 else { continue }
+        pocty[Int((w / h * 100).rounded()), default: 0] += 1
+        rozmery.append((p, b, otocena))
+    }
+    guard let nej = pocty.max(by: { $0.value < $1.value || ($0.value == $1.value && $0.key > $1.key) }) else { return }
+    let cil = CGFloat(nej.key) / 100
+    for (p, b, otocena) in rozmery {
+        let t = otocena ? 1 / cil : cil  // poměr v souřadnicích stránky
+        var r = b
+        if b.width / b.height > t {
+            r.size.width = b.height * t
+            r.origin.x = b.midX - r.width / 2
+        } else {
+            r.size.height = b.width / t
+            r.origin.y = b.midY - r.height / 2
+        }
+        p.setBounds(r, for: .cropBox)
+    }
+}
+
 struct PDFViewerView: UIViewRepresentable {
     let url: URL
     let cisloID: String
@@ -241,14 +304,19 @@ struct PDFViewerView: UIViewRepresentable {
     func makeCoordinator() -> Coordinator { Coordinator(cisloID: cisloID, ovladac: ovladac) }
 
     func makeUIView(context: Context) -> UIView {
-        let kontejner = UIView()
+        let kontejner = KontejnerPDF()
         let view = PDFView()
+        kontejner.pdf = view
         view.autoScales = true
         view.displayMode = .singlePageContinuous
         view.displayDirection = .vertical
         view.backgroundColor = .white
         view.maxScaleFactor = 4
-        view.document = PDFDocument(url: url)
+        view.displaysPageBreaks = false
+        if let doc = PDFDocument(url: url) {
+            sjednotRozmerStran(doc)
+            view.document = doc
+        }
         view.translatesAutoresizingMaskIntoConstraints = false
         kontejner.addSubview(view)
 
@@ -272,19 +340,23 @@ struct PDFViewerView: UIViewRepresentable {
         ovladac.pdfView = view
         ovladac.soubor = url
 
-        // obnovení strany, kde čtenář skončil
-        if let strana = pocatecniStrana ?? Stav.pozice(cisloID), let doc = view.document, strana < doc.pageCount,
-           let page = doc.page(at: strana) {
-            DispatchQueue.main.async { view.go(to: page) }
-        }
-        // obnovení zoomu, pokud ho čtenář dřív nastavil ručně
-        let zoom = UserDefaults.standard.double(forKey: Stav.klicZoom)
-        if zoom > 0 {
+        // Obnovení strany až po prvním rozložení (dřív má PDF nulovou velikost a skočí se jinam).
+        // Do té doby se pozice neukládá, aby ji nepřepsala strana 1.
+        let start = pocatecniStrana ?? Stav.pozice(cisloID)
+        kontejner.poPrvnimRozlozeni = { [weak view, weak c] in
             DispatchQueue.main.async {
-                view.autoScales = false
-                view.scaleFactor = min(max(CGFloat(zoom), view.minScaleFactor), view.maxScaleFactor)
+                if let view = view, let start = start, let doc = view.document,
+                   start >= 0, start < doc.pageCount, let page = doc.page(at: start) {
+                    view.go(to: page)
+                }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                    c?.obnovuje = false
+                    c?.ulozStranu()
+                }
             }
         }
+        // Čísla se vždy otevírají na celou šířku (ruční zoom se nepamatuje).
+        UserDefaults.standard.removeObject(forKey: Stav.klicZoom)
         let klepnuti = UITapGestureRecognizer(target: c, action: #selector(Coordinator.klepnuti(_:)))
         klepnuti.delegate = c
         let dvojklepnuti = UITapGestureRecognizer(target: c, action: #selector(Coordinator.dvojklepnuti(_:)))
@@ -332,6 +404,7 @@ struct PDFViewerView: UIViewRepresentable {
         let ovladac: PDFOvladac
         weak var pdfView: PDFView?
         weak var filtr: UIView?
+        var obnovuje = true
         init(cisloID: String, ovladac: PDFOvladac) {
             self.cisloID = cisloID
             self.ovladac = ovladac
@@ -341,7 +414,7 @@ struct PDFViewerView: UIViewRepresentable {
         @objc func zmenaZoomu() { ovladac.ulozZoom() }
 
         func ulozStranu() {
-            guard let doc = pdfView?.document, let page = pdfView?.currentPage else { return }
+            guard !obnovuje, let doc = pdfView?.document, let page = pdfView?.currentPage else { return }
             let i = doc.index(for: page)
             Stav.ulozPozici(cisloID, i)
             if ovladac.strana != i { DispatchQueue.main.async { self.ovladac.strana = i } }

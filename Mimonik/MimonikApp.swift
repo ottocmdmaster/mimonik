@@ -4,6 +4,7 @@ import UserNotifications
 
 @main
 struct MimonikApp: App {
+    @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @Environment(\.scenePhase) private var scenePhase
     @StateObject private var store = CislaStore()
 
@@ -13,6 +14,7 @@ struct MimonikApp: App {
             Notifier.zpracujUlohu(task)
         }
         UNUserNotificationCenter.current().delegate = Notifier.shared
+        Sync.start()
     }
 
     var body: some Scene {
@@ -22,6 +24,7 @@ struct MimonikApp: App {
         }
         .onChange(of: scenePhase) { faze in
             if faze == .active {
+                Push.registruj()
                 Task {
                     await store.obnov()
                     Notifier.aktualizujOdznak(store.cisla)

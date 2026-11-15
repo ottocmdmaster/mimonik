@@ -49,6 +49,17 @@ final class CislaStore: ObservableObject {
         stazena = Set(cisla.filter { Self.souborPDF($0).exists }.map { $0.id })
     }
 
+    /// Smaže stažené PDF jednoho čísla (znovu se stáhne, až ho otevřeš).
+    func smaz(_ cislo: Cislo) {
+        try? FileManager.default.removeItem(at: Self.souborPDF(cislo))
+        stazena.remove(cislo.id)
+    }
+
+    nonisolated static func velikost(_ c: Cislo) -> Int64 {
+        let atr = try? FileManager.default.attributesOfItem(atPath: souborPDF(c).path)
+        return (atr?[.size] as? NSNumber)?.int64Value ?? 0
+    }
+
     func smazStazene() {
         for c in cisla { try? FileManager.default.removeItem(at: Self.souborPDF(c)) }
         stazena = []

@@ -20,6 +20,7 @@ enum Stav {
         guard !s.contains(id) else { return }
         s.append(id)
         d.set(s, forKey: klicPrectena)
+        Sync.odesli(klicPrectena)
         NotificationCenter.default.post(name: zmena, object: nil)
     }
 
@@ -28,6 +29,24 @@ enum Stav {
         guard s.contains(id) else { return }
         s.removeAll { $0 == id }
         d.set(s, forKey: klicPrectena)
+        Sync.odesli(klicPrectena)
+        NotificationCenter.default.post(name: zmena, object: nil)
+    }
+
+    static func oznacVsePrectene(_ ids: [String]) {
+        var s = d.stringArray(forKey: klicPrectena) ?? []
+        let nove = ids.filter { !s.contains($0) }
+        guard !nove.isEmpty else { return }
+        s.append(contentsOf: nove)
+        d.set(s, forKey: klicPrectena)
+        Sync.odesli(klicPrectena)
+        NotificationCenter.default.post(name: zmena, object: nil)
+    }
+
+    static func oznacVseNeprectene() {
+        guard !(d.stringArray(forKey: klicPrectena) ?? []).isEmpty else { return }
+        d.set([String](), forKey: klicPrectena)
+        Sync.odesli(klicPrectena)
         NotificationCenter.default.post(name: zmena, object: nil)
     }
 
@@ -44,6 +63,7 @@ enum Stav {
         var p = (d.dictionary(forKey: klicPozice) as? [String: Int]) ?? [:]
         p[id] = strana
         d.set(p, forKey: klicPozice)
+        Sync.odesli(klicPozice)
         zaznamenejStranu(id, strana)
     }
 
@@ -55,6 +75,7 @@ enum Stav {
         var s = d.stringArray(forKey: klicOblibena) ?? []
         if let i = s.firstIndex(of: id) { s.remove(at: i) } else { s.append(id) }
         d.set(s, forKey: klicOblibena)
+        Sync.odesli(klicOblibena)
         NotificationCenter.default.post(name: zmena, object: nil)
     }
 
@@ -79,6 +100,7 @@ enum Stav {
         if let i = z.firstIndex(of: strana) { z.remove(at: i); existuje = false } else { z.append(strana); existuje = true }
         vse[id] = z
         d.set(vse, forKey: klicZalozky)
+        Sync.odesli(klicZalozky)
         return existuje
     }
 

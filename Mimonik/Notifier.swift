@@ -84,7 +84,10 @@ final class Notifier: NSObject, UNUserNotificationCenterDelegate {
         if !zapnout {
             zapnuto = false
             BGTaskScheduler.shared.cancel(taskRequestWithIdentifier: taskID)
-            DispatchQueue.main.async { UIApplication.shared.applicationIconBadgeNumber = 0 }
+            DispatchQueue.main.async {
+                UIApplication.shared.applicationIconBadgeNumber = 0
+                Push.odregistruj()
+            }
             return false
         }
         let centrum = UNUserNotificationCenter.current()
@@ -97,6 +100,7 @@ final class Notifier: NSObject, UNUserNotificationCenterDelegate {
                 UserDefaults.standard.set(nejnovejsi.poradi, forKey: klicPosledni)
             }
             naplanujKontrolu()
+            await MainActor.run { Push.registruj() }
         }
         return ok
     }
@@ -139,7 +143,7 @@ final class Notifier: NSObject, UNUserNotificationCenterDelegate {
         guard nejnovejsi.poradi > posledni else { return false }
         UserDefaults.standard.set(nejnovejsi.poradi, forKey: klicPosledni)
         let stazeno = await autoStahni(nejnovejsi)
-        guard zapnuto, !rucne, !jeTicho() else { return true }
+        guard zapnuto, !rucne, !jeTicho(), !Push.registrovano else { return true }
         let pocet = Stav.pocetNeprectenych(seznam)
         let obsah = UNMutableNotificationContent()
         obsah.title = "Nový Mimoník"

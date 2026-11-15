@@ -1,10 +1,12 @@
 import SwiftUI
+import CoreSpotlight
 
 struct HomeView: View {
     @EnvironmentObject var store: CislaStore
     @State private var hledani = ""
     @State private var jenOblibene = false
     @AppStorage(Stav.klicVelikostSeznamu) private var velikost = VelikostSeznamu.normalni.rawValue
+    @State private var otevriID: String?
     @State private var zmena = 0  // změna přečtených/oblíbených čísel → překreslení seznamu
 
     var body: some View {
@@ -86,12 +88,32 @@ struct HomeView: View {
                     }
                 }
             }
+            .background(
+                NavigationLink(
+                    destination: Group { if let c = otevrene { CisloView(cislo: c) } },
+                    isActive: Binding(get: { otevrene != nil }, set: { if !$0 { otevriID = nil } })
+                ) { EmptyView() }
+            )
+            .onContinueUserActivity(CSSearchableItemActionType) { otevriID = Spotlight.id(z: $0) }
+            .onContinueUserActivity(Spotlight.typAktivity) { otevriID = Spotlight.id(z: $0) }
             .navigationTitle("Mimoník")
             .refreshable { await store.obnov() }
             .searchable(text: $hledani, prompt: "Hledat číslo")
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     NavigationLink(destination: HledaniView()) { Image(systemName: "magnifyingglass") }
+                }
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Menu {
+                        Button {
+                            Stav.oznacVsePrectene(store.cisla.map { $0.id })
+                            Notifier.aktualizujOdznak(store.cisla)
+                        } label: { Label("Označit vše jako přečtené", systemImage: "checkmark.circle") }
+                        Button {
+                            Stav.oznacVseNeprectene()
+                            Notifier.aktualizujOdznak(store.cisla)
+                        } label: { Label("Označit vše jako nepřečtené", systemImage: "circle") }
+                    } label: { Image(systemName: "ellipsis.circle") }
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button { jenOblibene.toggle() } label: {
@@ -113,6 +135,7 @@ struct HomeView: View {
         .modifier(StylNavigace())
         .task {
             await store.obnov()
+            Spotlight.indexuj(store.cisla)
             if Notifier.zapnuto { Notifier.oznacJakoVidene(store.cisla) }
         }
     }
@@ -121,6 +144,8 @@ struct HomeView: View {
         Stav.oznacNeprectene(cislo.id)
         Notifier.aktualizujOdznak(store.cisla)
     }
+
+    private var otevrene: Cislo? { store.cisla.first { $0.id == otevriID } }
 
     private var styl: VelikostSeznamu { VelikostSeznamu(rawValue: velikost) ?? .normalni }
 

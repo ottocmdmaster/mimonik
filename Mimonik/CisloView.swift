@@ -71,6 +71,7 @@ struct CisloView: View {
         }
         .navigationTitle(cislo.nazev)
         .navigationBarTitleDisplayMode(.inline)
+        .userActivity(Spotlight.typAktivity) { Spotlight.nastav($0, cislo) }
         .searchable(text: $hledani, placement: .navigationBarDrawer(displayMode: .automatic), prompt: "Hledat v čísle")
         .onSubmit(of: .search) { ovladac.hledej(hledani) }
         .onChange(of: hledani) { text in
@@ -84,7 +85,6 @@ struct CisloView: View {
                     Button { ovladac.predchozi() } label: { Image(systemName: "chevron.up") }
                     Button { ovladac.dalsi() } label: { Image(systemName: "chevron.down") }
                 }
-                Button { aktivniSheet = .nahledy } label: { Image(systemName: "square.grid.2x2") }
                 Button { zobrazeni.toggle() } label: { Image(systemName: "textformat.size") }
                 Menu {
                     Button { ovladac.zvyrazni(.yellow) } label: { Label("Zvýraznit žlutě", systemImage: "highlighter") }
@@ -92,7 +92,14 @@ struct CisloView: View {
                     Button { ovladac.zvyrazni(.systemPink) } label: { Label("Zvýraznit růžově", systemImage: "highlighter") }
                     Button { ovladac.zacniPoznamku() } label: { Label("Přidat poznámku", systemImage: "note.text.badge.plus") }
                 } label: { Image(systemName: "pencil.tip.crop.circle") }
+                Button {
+                    Stav.prepniOblibene(cislo.id)
+                    oblibene = Stav.jePoblibene(cislo.id)
+                } label: {
+                    Image(systemName: oblibene ? "star.fill" : "star").foregroundColor(oblibene ? .yellow : nil)
+                }
                 Menu {
+                    Button { aktivniSheet = .nahledy } label: { Label("Náhledy stran", systemImage: "square.grid.2x2") }
                     Button {
                         Stav.prepniZalozku(cislo.id, ovladac.strana)
                         zalozky = Stav.zalozky(cislo.id)
@@ -102,13 +109,6 @@ struct CisloView: View {
                               systemImage: je ? "bookmark.slash" : "bookmark")
                     }
                     Button { aktivniSheet = .seznam } label: { Label("Záložky a poznámky", systemImage: "list.bullet") }
-                    Button {
-                        Stav.prepniOblibene(cislo.id)
-                        oblibene = Stav.jePoblibene(cislo.id)
-                    } label: {
-                        Label(oblibene ? "Odebrat z oblíbených" : "Přidat do oblíbených",
-                              systemImage: oblibene ? "star.fill" : "star")
-                    }
                     Button {
                         Stav.oznacNeprectene(cislo.id)
                         Notifier.aktualizujOdznak(store.cisla)
@@ -140,7 +140,8 @@ struct CisloView: View {
         .onAppear {
             oblibene = Stav.jePoblibene(cislo.id)
             zalozky = Stav.zalozky(cislo.id)
-            Stav.oznacPrectene(cislo.id)
+            // „Přečtené“ se zapíše až při odchodu: změna stavu při otevření překreslí seznam pod čtečkou
+            // a SwiftUI pak čtečku zavře nebo přepíše (nepřečtená čísla nešlo otevřít).
             Stav.posledniOtevrene = cislo.id
             Stav.zaznamenejOtevreni(cislo.id)
             zaznam.start()
@@ -158,12 +159,14 @@ struct CisloView: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.willResignActiveNotification)) { _ in
             Stav.pridejDobu(cislo.id, sekundy: zaznam.pauza())
+            Stav.oznacPrectene(cislo.id)
         }
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
             zaznam.start()
         }
         .onDisappear {
             Stav.pridejDobu(cislo.id, sekundy: zaznam.pauza())
+            Stav.oznacPrectene(cislo.id)
             UIApplication.shared.isIdleTimerDisabled = false
             if let p = puvodniJas { UIScreen.main.brightness = p; puvodniJas = nil }
         }

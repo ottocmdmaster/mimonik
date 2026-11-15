@@ -22,6 +22,23 @@ final class StavTests: XCTestCase {
         (1...n).map { Cislo(id: "c\($0)", nazev: "Číslo \($0)", pdf: "c\($0).pdf", poradi: $0) }
     }
 
+    func testSlouceniStavuMeziZarizenimi() {
+        XCTAssertEqual(Sync.slouc(["a", "b"], ["b", "c"]) as? [String], ["a", "b", "c"])
+        XCTAssertEqual(Sync.slouc(["x": 3, "y": 1], ["x": 5, "z": 2]) as? [String: Int], ["x": 5, "y": 1, "z": 2])
+        XCTAssertEqual(Sync.slouc(["x": [1, 3]], ["x": [2, 3]]) as? [String: [Int]], ["x": [1, 2, 3]])
+        XCTAssertNil(Sync.slouc(nil, ["a"]))
+    }
+
+    func testOznacitVsePrecteneAVseNeprectene() {
+        let c = cisla(3)
+        Stav.oznacPrectene("c1")
+        Stav.oznacVsePrectene(c.map { $0.id })
+        XCTAssertEqual(Stav.pocetNeprectenych(c), 0)
+        XCTAssertEqual(Set(Stav.d.stringArray(forKey: "prectenaCisla") ?? []).count, 3)
+        Stav.oznacVseNeprectene()
+        XCTAssertEqual(Stav.pocetNeprectenych(c), 3)
+    }
+
     func testOznacitJakoNeprectene() {
         let c = cisla(2)
         Stav.oznacPrectene("c1")

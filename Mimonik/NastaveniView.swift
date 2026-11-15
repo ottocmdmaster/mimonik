@@ -72,6 +72,12 @@ struct NastaveniView: View {
                 }
             }
 
+            Section {
+                NavigationLink(destination: StazenaView()) {
+                    Label("Stažená čísla", systemImage: "arrow.down.circle")
+                }
+            }
+
             Section(footer: vysledek.map { Text($0) }) {
                 Button {
                     Task { await zkontrolujTed() }
