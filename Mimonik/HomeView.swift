@@ -41,38 +41,40 @@ struct HomeView: View {
                     }
                 }
 
-                Section(header: Text(jenOblibene ? "Oblíbená čísla" : "Všechna čísla"), footer: chybaText) {
-                    ForEach(zobrazena) { cislo in
-                        NavigationLink(destination: CisloView(cislo: cislo)) {
-                            HStack {
-                                if !Stav.jePrectene(cislo.id) {
-                                    Circle().fill(Color.accentColor).frame(width: 9, height: 9)
+                ForEach(roky, id: \.self) { rok in
+                    Section(header: Text(nadpisRoku(rok)), footer: Group { if rok == roky.last { chybaText } }) {
+                        ForEach(zobrazena.filter { rokCisla($0) == rok }) { cislo in
+                            NavigationLink(destination: CisloView(cislo: cislo)) {
+                                HStack {
+                                    if !Stav.jePrectene(cislo.id) {
+                                        Circle().fill(Color.accentColor).frame(width: 9, height: 9)
+                                    }
+                                    Text(cislo.nazev)
+                                        .font(styl.pismo)
+                                        .fontWeight(Stav.jePrectene(cislo.id) ? .regular : .semibold)
+                                    Spacer()
+                                    if Stav.jePoblibene(cislo.id) {
+                                        Image(systemName: "star.fill").foregroundColor(.yellow)
+                                    }
+                                    if store.stazena.contains(cislo.id) {
+                                        Image(systemName: "arrow.down.circle.fill").foregroundColor(.secondary)
+                                    }
                                 }
-                                Text(cislo.nazev)
-                                    .font(styl.pismo)
-                                    .fontWeight(Stav.jePrectene(cislo.id) ? .regular : .semibold)
-                                Spacer()
-                                if Stav.jePoblibene(cislo.id) {
-                                    Image(systemName: "star.fill").foregroundColor(.yellow)
-                                }
-                                if store.stazena.contains(cislo.id) {
-                                    Image(systemName: "arrow.down.circle.fill").foregroundColor(.secondary)
+                                .padding(.vertical, styl.odsazeni)
+                            }
+                            .swipeActions(edge: .leading) {
+                                if Stav.jePrectene(cislo.id) {
+                                    Button { prepniPrectene(cislo) } label: {
+                                        Label("Nepřečtené", systemImage: "circle.fill")
+                                    }
+                                    .tint(.accentColor)
                                 }
                             }
-                            .padding(.vertical, styl.odsazeni)
-                        }
-                        .swipeActions(edge: .leading) {
-                            if Stav.jePrectene(cislo.id) {
-                                Button { prepniPrectene(cislo) } label: {
-                                    Label("Nepřečtené", systemImage: "circle.fill")
-                                }
-                                .tint(.accentColor)
-                            }
-                        }
-                        .contextMenu {
-                            if Stav.jePrectene(cislo.id) {
-                                Button { prepniPrectene(cislo) } label: {
-                                    Label("Označit jako nepřečtené", systemImage: "circle.fill")
+                            .contextMenu {
+                                if Stav.jePrectene(cislo.id) {
+                                    Button { prepniPrectene(cislo) } label: {
+                                        Label("Označit jako nepřečtené", systemImage: "circle.fill")
+                                    }
                                 }
                             }
                         }
@@ -167,6 +169,17 @@ struct HomeView: View {
             (!jenOblibene || Stav.jePoblibene(c.id)) &&
             (hledani.isEmpty || c.nazev.range(of: hledani, options: [.caseInsensitive, .diacriticInsensitive]) != nil)
         }
+    }
+
+    private func rokCisla(_ c: Cislo) -> Int { c.poradi / 100 }
+
+    /// Roky, ve kterých je aspoň jedno zobrazené číslo, od nejnovějšího.
+    private var roky: [Int] {
+        Array(Set(zobrazena.map(rokCisla))).sorted(by: >)
+    }
+
+    private func nadpisRoku(_ rok: Int) -> String {
+        jenOblibene ? "Oblíbená čísla · \(rok)" : String(rok)
     }
 
     private var chybaText: some View {
