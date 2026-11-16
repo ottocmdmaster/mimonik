@@ -1,4 +1,5 @@
 import Foundation
+import PDFKit
 
 struct Cislo: Codable, Identifiable, Equatable {
     let id: String
@@ -87,12 +88,62 @@ final class CislaStore: ObservableObject {
                 guard (odpoved as? HTTPURLResponse)?.statusCode == 200 else { continue }
                 try FileManager.default.createDirectory(at: cil.deletingLastPathComponent(), withIntermediateDirectories: true)
                 if cil.exists { try? FileManager.default.removeItem(at: tmp) }
-                else { try FileManager.default.moveItem(at: tmp, to: cil) }
+                else {
+                    try FileManager.default.moveItem(at: tmp, to: cil)
+                    ulozEtag(cislo.id, (odpoved as? HTTPURLResponse)?.value(forHTTPHeaderField: "Etag"))
+                }
                 return cil
             } catch is CancellationError { throw CancellationError() }
             catch { if Task.isCancelled { throw CancellationError() }; continue }
         }
         throw SpojeniChyba.nedostupne
+    }
+
+    // MARK: - změněné PDF na webu
+
+    private nonisolated static let klicEtag = "etagPDF"
+
+    nonisolated static func ulozenyEtag(_ id: String) -> String? {
+        (UserDefaults.standard.dictionary(forKey: klicEtag) as? [String: String])?[id]
+    }
+
+    nonisolated static func ulozEtag(_ id: String, _ etag: String?) {
+        var m = (UserDefaults.standard.dictionary(forKey: klicEtag) as? [String: String]) ?? [:]
+        m[id] = etag
+        UserDefaults.standard.set(m, forKey: klicEtag)
+    }
+
+    /// Má PDF zvýraznění nebo poznámky čtenáře?
+    nonisolated static func maAnotace(_ url: URL) -> Bool {
+        guard let doc = PDFDocument(url: url) else { return false }
+        for i in 0..<doc.pageCount {
+            for a in doc.page(at: i)?.annotations ?? [] {
+                let typ = (a.type ?? "").replacingOccurrences(of: "/", with: "")
+                if typ == "Highlight" || typ == "Text" { return true }
+            }
+        }
+        return false
+    }
+
+    /// Když se PDF na webu změnilo od stažení (jiný ETag), smaže místní kopii, aby se stáhla znovu.
+    /// Staré kopie bez zaznamenaného ETagu se smažou jen tehdy, když v nich nejsou poznámky čtenáře.
+    nonisolated static func obnovZmenene(_ cislo: Cislo) async {
+        let cil = souborPDF(cislo)
+        guard cil.exists else { return }
+        for adresa in Config.adresy {
+            guard let url = URL(string: adresa + cislo.pdf) else { continue }
+            var req = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 8)
+            req.httpMethod = "HEAD"
+            guard let (_, odp) = try? await URLSession.shared.data(for: req),
+                  let h = odp as? HTTPURLResponse, h.statusCode == 200,
+                  let etag = h.value(forHTTPHeaderField: "Etag") else { continue }
+            let ulozeny = ulozenyEtag(cislo.id)
+            if ulozeny == etag { return }
+            if ulozeny == nil && maAnotace(cil) { ulozEtag(cislo.id, etag); return }
+            try? FileManager.default.removeItem(at: cil)
+            ulozEtag(cislo.id, nil)
+            return
+        }
     }
 
     nonisolated static func nactiSeznam() async throws -> [Cislo] {

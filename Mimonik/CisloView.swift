@@ -186,6 +186,8 @@ struct CisloView: View {
 
     private func nacti() async {
         selhalo = false
+        await CislaStore.obnovZmenene(cislo)
+        store.obnovStazena()
         let uzBylo = store.stazena.contains(cislo.id)
         do {
             let url = try await store.pdf(cislo)
