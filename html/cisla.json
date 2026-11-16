@@ -6,12 +6,6 @@
     "poradi": 202603
   },
   {
-    "id": "0625",
-    "nazev": "červen 2025",
-    "pdf": "images/pdf/0625.pdf",
-    "poradi": 202506
-  },
-  {
     "id": "03+0425",
     "nazev": "březen+duben 2025",
     "pdf": "images/pdf/03+0425.pdf",
@@ -24,28 +18,34 @@
     "poradi": 202502
   },
   {
-    "id": "1224",
-    "nazev": "prosinec 2024",
-    "pdf": "images/pdf/1224.pdf",
-    "poradi": 202412
-  },
-  {
-    "id": "1124",
-    "nazev": "listopad 2024",
-    "pdf": "images/pdf/1124.pdf",
-    "poradi": 202411
-  },
-  {
     "id": "0924",
     "nazev": "září 2024",
     "pdf": "images/pdf/0924.pdf",
     "poradi": 202409
   },
   {
+    "id": "0624",
+    "nazev": "červen 2024",
+    "pdf": "images/pdf/0624.pdf",
+    "poradi": 202406
+  },
+  {
     "id": "0524",
     "nazev": "květen 2024",
     "pdf": "images/pdf/0524.pdf",
     "poradi": 202405
+  },
+  {
+    "id": "1223",
+    "nazev": "prosinec 2023",
+    "pdf": "images/pdf/1223.pdf",
+    "poradi": 202312
+  },
+  {
+    "id": "1123",
+    "nazev": "listopad 2023",
+    "pdf": "images/pdf/1123.pdf",
+    "poradi": 202311
   },
   {
     "id": "1023",
