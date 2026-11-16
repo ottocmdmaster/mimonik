@@ -6,12 +6,6 @@
     "poradi": 202603
   },
   {
-    "id": "0625",
-    "nazev": "červen 2025",
-    "pdf": "images/pdf/0625.pdf",
-    "poradi": 202506
-  },
-  {
     "id": "03+0425",
     "nazev": "březen+duben 2025",
     "pdf": "images/pdf/03+0425.pdf",
@@ -28,6 +22,12 @@
     "nazev": "prosinec 2024",
     "pdf": "images/pdf/1224.pdf",
     "poradi": 202412
+  },
+  {
+    "id": "0624",
+    "nazev": "červen 2024",
+    "pdf": "images/pdf/0624.pdf",
+    "poradi": 202406
   },
   {
     "id": "0524",
